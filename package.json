@@ -1,0 +1,41 @@
+{
+  "name": "schemix",
+  "version": "0.1.0",
+  "description": "Extract database schema in a compact format for AI chat context",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "schemix": "dist/index.js"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "database",
+    "schema",
+    "postgresql",
+    "mongodb",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0",
+    "mongodb": "^6.0.0",
+    "ora": "^7.0.1",
+    "pg": "^8.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.10.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
