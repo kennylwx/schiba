@@ -7,6 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
+import { formatSchema } from './schemaFormatter.js';
 
 const { Client } = pg;
 
@@ -32,6 +33,8 @@ interface SchemaOptions {
   filename?: string;
   directory?: string;
   timeout?: number;
+  format?: 'raw' | 'markdown';
+
 }
 
 interface MongoCollection {
@@ -133,7 +136,7 @@ Notes:
 
 Additional Info:
 ---------------
-For more information about Schemix, visit: https://github.com/yourusername/schemix
+For more information about Schemix, visit: https://github.com/kennylwx/schemix
 
 ================================================================
 Schema Details
@@ -305,16 +308,29 @@ async function getMongoSchema(connectionString: string): Promise<string> {
   }
 }
 
-async function writeSchemaToFile(schema: string, options: SchemaOptions, dbType: string | null): Promise<string> {
+async function writeSchemaToFile(
+  schema: string, 
+  options: SchemaOptions, 
+  dbType: string | null
+): Promise<string> {
   const directory = options.directory || process.cwd();
-  const filename = options.filename || 'schemix-out.txt';
+  let filename = options.filename;
+
+  // If format is markdown/md and no filename is specified, use .md extension
+  if (!filename) {
+    filename = options.format?.toLowerCase() === 'markdown' || options.format?.toLowerCase() === 'md'
+      ? 'schemix-out.md'
+      : 'schemix-out.txt';
+  }
+
   const fullPath = path.join(directory, filename);
 
+  // Always include header, but format based on option
   const header = generateAIContextHeader(dbType || 'UNKNOWN');
-  const fullContent = header + schema;
+  const formattedContent = formatSchema(header + schema, options.format || 'raw');
 
   await fs.mkdir(directory, { recursive: true });
-  await fs.writeFile(fullPath, fullContent, 'utf8');
+  await fs.writeFile(fullPath, formattedContent, 'utf8');
   
   return fullPath;
 }
@@ -395,6 +411,7 @@ async function main(options: SchemaOptions) {
     console.log(`Database: ${dbType}`);
     console.log(`Duration: ${duration}s`);
     console.log(`Output: ${outputPath}`);
+    console.log(`Format: ${options.format || 'raw'}`);
     console.log(`Schema Size: ${(schema.length / 1024).toFixed(2)} KB`);
     
     if (schema.toLowerCase().includes('user') || schema.toLowerCase().includes('auth')) {
@@ -421,19 +438,24 @@ program
     'schemix - Extract and compact database schemas for AI context windows\n\n' +
     'Example usage:\n' +
     '  $ schemix "postgresql://user:password@localhost:5432/dbname"\n' +
-    '  $ schemix "mongodb://user:password@localhost:27017/dbname"\n\n' +
+    '  $ schemix "mongodb://user:password@localhost:27017/dbname" --format markdown\n\n' +
     'Supported databases:\n' +
     '  - PostgreSQL (postgresql://, postgres://)\n' +
     '  - MongoDB (mongodb://, mongodb+srv://)\n' +
     '  - MySQL (coming soon)\n' +
     '  - MSSQL (coming soon)\n' +
-    '  - Oracle (coming soon)'
+    '  - Oracle (coming soon)\n\n' +
+    'Output formats:\n' +
+    '  - raw (default): Outputs schema in JSON format with AI context header\n' +
+    '  - markdown (or md): Outputs schema in markdown tables with AI context header\n' +
+    '  Note: Using --format markdown without -f will output to schemix-out.md'
   )
   .version(VERSION, '-v, --version', 'Output the current version')
   .argument('<db-string>', 'Database connection string (must be wrapped in quotes)')
-  .option('-f, --filename <name>', 'Output filename (default: schemix-out.txt)')
+  .option('-f, --filename <name>', 'Output filename (default: schemix-out.txt or schemix-out.md for markdown)')
   .option('-d, --directory <path>', 'Output directory (default: current directory)')
   .option('-t, --timeout <ms>', 'Connection timeout in milliseconds (default: 10000)')
+  .option('--format <type>', 'Output format: "raw" or "markdown"', 'raw')
   .addHelpText('after', '\n' + chalk.yellow('Important:') + 
     ' Connection string must be wrapped in quotes:\n' +
     '  $ schemix "postgresql://user:pass@localhost:5432/db"\n' +
@@ -449,12 +471,27 @@ program
         return;
       }
 
+      // Validate and normalize format option
+      if (options.format) {
+        const format = options.format.toLowerCase();
+        if (!['raw', 'markdown', 'md'].includes(format)) {
+          console.error(chalk.red('\nError: Invalid format option'));
+          console.log('Supported formats: "raw", "markdown" (or "md")\n');
+          process.exit(1);
+        }
+        // Normalize 'md' to 'markdown'
+        if (format === 'md') {
+          options.format = 'markdown';
+        }
+      }
+
       const sanitizedDbString = sanitizeConnectionString(dbString);
       main({
         dbString: sanitizedDbString,
         filename: options.filename,
         directory: options.directory,
-        timeout: options.timeout ? parseInt(options.timeout) : CONNECTION_TIMEOUT
+        timeout: options.timeout ? parseInt(options.timeout) : CONNECTION_TIMEOUT,
+        format: options.format as 'raw' | 'markdown'
       });
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
