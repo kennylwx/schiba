@@ -148,7 +148,7 @@ function printSummary(
     const sizeFormatted = formatStorageSize(stats.totalSize);
 
     // Version and info header
-    console.log(chalk.dim(`⛷️ Schemix v${CONFIG.VERSION}`));
+    console.log(chalk.dim(`Schemix v${CONFIG.VERSION}`));
     console.log(
       chalk.dim('Please check https://github.com/kennylwx/schemix for more information.\n')
     );
@@ -169,18 +169,17 @@ function printSummary(
 
     // Objects line with consistent coloring
     console.log(
-      chalk.white('Properties: ') +
-        chalk.white(`${stats.details.tables || 0} tables, `) +
+      chalk.white(`Tables: ${stats.details.tables || 0}`) +
         chalk.dim(
-          `${totalColumns} columns, ` +
-            `${totalIndexes} indexes, ` +
-            `${stats.details.enums || 0} enums`
+          ` | Columns: ${totalColumns} | ` +
+            `Indexes: ${totalIndexes} | ` +
+            `Enums: ${stats.details.enums || 0}`
         )
     );
 
     // Output info with consistent coloring
     console.log(
-      chalk.white('Export: ') +
+      chalk.white('Directory: ') +
         chalk.white(outputPath) +
         chalk.dim(' | Format: ') +
         chalk.dim(meta.format) +
