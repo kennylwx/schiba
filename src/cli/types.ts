@@ -4,6 +4,7 @@ export interface CLIOptions {
   timeout?: number;
   format?: 'raw' | 'markdown';
   verbose?: boolean;
+  copy?: boolean;
 }
 
 export interface CommanderError extends Error {

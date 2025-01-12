@@ -34,6 +34,7 @@ async function main(): Promise<void> {
     )
     .option('--format <type>', 'Output format: "raw" or "markdown"', 'raw')
     .option('--verbose', 'Enable verbose logging')
+    .option('-c, --copy', 'Copy the output to clipboard')
     .addHelpText('after', '\nNote: Connection string must be wrapped in quotes')
     .action(async (dbString: string, options: CLIOptions) => {
       try {
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
           directory: options.directory,
           timeout: options.timeout ? options.timeout : CONFIG.CONNECTION_TIMEOUT,
           format: options.format as 'raw' | 'markdown',
+          copy: options.copy,
         });
       } catch (error) {
         if (error instanceof Error) {

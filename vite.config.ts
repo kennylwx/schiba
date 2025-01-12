@@ -24,6 +24,7 @@ export default defineConfig({
         'util',
         'stream',
         'process',
+        'clipboardy',
       ],
     },
     sourcemap: true,
@@ -34,7 +35,6 @@ export default defineConfig({
       include: [/node_modules/],
       transformMixedEsModules: true,
       requireReturnsDefault: true,
-      ignore: ['pg'], // Add this line
     },
   },
   resolve: {
@@ -43,7 +43,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['pg'],
+    include: ['pg', 'clipboardy'],
     exclude: ['fs', 'path'],
   },
 });

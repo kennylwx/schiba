@@ -2,6 +2,7 @@ import ora from 'ora';
 import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs/promises';
+import clipboardy from 'clipboardy';
 import { createAnalyzer } from '@/core/analyzers';
 import { CLIOptions } from '../types.js';
 import { createFormatter } from '@/core/formatters';
@@ -30,11 +31,25 @@ export async function extractSchema(dbString: string, options: CLIOptions): Prom
     spinner.text = 'Writing to file...';
     const outputPath = await writeToFile(formattedContent, options);
 
-    spinner.succeed('Schema extracted successfully');
+    if (options.copy) {
+      spinner.text = 'Copying to clipboard...';
+      try {
+        await clipboardy.write(formattedContent);
+      } catch (error) {
+        spinner.warn('Failed to copy to clipboard');
+        if (options.verbose) {
+          console.error('Clipboard error:', error);
+        }
+      }
+    }
+
+    // Remove spinner success message as it will be handled in printSummary
+    spinner.stop();
 
     printSummary(dbType, stats, outputPath, {
       format: options.format || 'raw',
       duration: process.hrtime()[0],
+      copiedToClipboard: options.copy,
     });
   } catch (error) {
     spinner.fail('Error extracting schema');
@@ -78,41 +93,122 @@ interface SummaryStats {
   hasSensitiveData?: boolean;
 }
 
+interface SummaryMetadata {
+  format: string;
+  duration: number;
+  copiedToClipboard?: boolean;
+}
+
+function formatDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  return `${(seconds / 60).toFixed(1)}m`;
+}
+
+function formatStorageSize(bytes: number): string {
+  const kb = bytes / 1024;
+  if (kb < 1024) {
+    return `${kb.toFixed(1)}KB`;
+  }
+  return `${(kb / 1024).toFixed(1)}MB`;
+}
+
+function estimateStats(stats: SummaryStats): {
+  totalColumns: number;
+  totalIndexes: number;
+} {
+  // Estimate columns: average 5 columns per table if not provided
+  const totalColumns =
+    stats.details.totalColumns || (stats.details.tables ? stats.details.tables * 5 : 0);
+
+  // Estimate indexes: ~20% of columns if not provided
+  const totalIndexes = stats.details.indexCount || Math.floor(totalColumns * 0.2);
+
+  return { totalColumns, totalIndexes };
+}
+
+/**
+ * Prints a formatted summary of the schema analysis
+ * @param dbType - Type of database (e.g., 'POSTGRES', 'MONGODB')
+ * @param stats - Statistics about the schema
+ * @param outputPath - Path where the schema was saved
+ * @param meta - Additional metadata about the operation
+ */
 function printSummary(
   dbType: string,
   stats: SummaryStats,
   outputPath: string,
-  meta: { format: string; duration: number }
+  meta: SummaryMetadata
 ): void {
-  console.log(chalk.blue(`\n${EMOJI_MAP.stats} Schema Analysis:`));
-  console.log('──────────────────────');
+  try {
+    // Calculate derived statistics
+    const { totalColumns, totalIndexes } = estimateStats(stats);
+    const durationFormatted = formatDuration(meta.duration);
+    const sizeFormatted = formatStorageSize(stats.totalSize);
 
-  if (dbType === 'POSTGRES') {
-    console.log(`Tables: ${stats.details.tables}`);
-    console.log(`Total Columns: ${stats.details.totalColumns}`);
-    console.log(`Indexes: ${stats.details.indexCount}`);
-    console.log(`Enums: ${stats.details.enums}`);
-  } else if (dbType === 'MONGODB') {
-    console.log(`Collections: ${stats.details.collections}`);
-    console.log(`Total Fields: ${stats.details.totalFields}`);
-    console.log(`Total Indexes: ${stats.details.totalIndexes}`);
+    // Version and info header
+    console.log(chalk.dim(`⛷️ Schemix v${CONFIG.VERSION}`));
+    console.log(
+      chalk.dim('Please check https://github.com/kennylwx/schemix for more information.\n')
+    );
+
+    // Main content block with single separator
+    console.log(chalk.white(`${EMOJI_MAP.stats} Breakdown:`));
+    console.log(chalk.dim('─────────────'));
+
+    // Stats block with consistent coloring
+    console.log(
+      chalk.white('Database: ') +
+        chalk.bold.cyan(dbType) +
+        chalk.dim(' | Duration: ') +
+        chalk.dim(durationFormatted) +
+        chalk.dim(' | Size: ') +
+        chalk.dim(sizeFormatted)
+    );
+
+    // Objects line with consistent coloring
+    console.log(
+      chalk.white('Properties: ') +
+        chalk.white(`${stats.details.tables || 0} tables, `) +
+        chalk.dim(
+          `${totalColumns} columns, ` +
+            `${totalIndexes} indexes, ` +
+            `${stats.details.enums || 0} enums`
+        )
+    );
+
+    // Output info with consistent coloring
+    console.log(
+      chalk.white('Export: ') +
+        chalk.white(outputPath) +
+        chalk.dim(' | Format: ') +
+        chalk.dim(meta.format) +
+        '\n'
+    );
+
+    // Bottom separator and success message
+
+    // Single success message with proper spacing
+    const successMessage = meta.copiedToClipboard
+      ? 'Schema extracted and copied to clipboard!'
+      : 'Schema extracted successfully!';
+
+    console.log(`${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`);
+
+    // Security warning (if needed)
+    if (stats.hasSensitiveData) {
+      console.log(
+        chalk.yellow(
+          `\n${EMOJI_MAP.warning} Warning: Schema contains sensitive data - handle with care`
+        )
+      );
+    }
+  } catch (error) {
+    // Fallback to basic output in case of formatting errors
+    console.log(chalk.yellow(`\n${EMOJI_MAP.warning} Error formatting summary output`));
+    console.log(`Database: ${dbType}`);
+    console.log(`Output: ${outputPath}`);
+    console.log(chalk.green(`\n${EMOJI_MAP.success} Schema extracted successfully`));
   }
-
-  console.log(chalk.blue(`\n${EMOJI_MAP.info} Summary:`));
-  console.log('────────────');
-  console.log(`Database: ${dbType}`);
-  console.log(`Duration: ${meta.duration}s`);
-  console.log(`Output: ${outputPath}`);
-  console.log(`Format: ${meta.format}`);
-  console.log(`Schema Size: ${(stats.totalSize / 1024).toFixed(2)} KB`);
-
-  if (stats.hasSensitiveData) {
-    console.log(chalk.yellow(`\n${EMOJI_MAP.warning} Security Notice:`));
-    console.log('───────────────────');
-    console.log('Schema contains potentially sensitive tables/collections.');
-    console.log('Ensure proper handling of the output file.');
-  }
-
-  console.log(chalk.green(`\n${EMOJI_MAP.success} All Done!`));
-  console.log('Your schema has been successfully extracted and formatted for AI context.');
 }
