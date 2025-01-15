@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Read package.json and get version
-const packageJson = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8'));
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
 
 export const CONFIG = {
   VERSION: packageJson.version,
