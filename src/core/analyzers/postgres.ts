@@ -25,12 +25,14 @@ export class PostgresAnalyzer {
   private client: PostgresClient;
 
   constructor(connectionString: string, timeout: number) {
+    // Add ssl=no-verify if it's not already present
+    const connStr = connectionString.includes('ssl=')
+      ? connectionString
+      : `${connectionString}${connectionString.includes('?') ? '&' : '?'}ssl=no-verify`;
+
     this.client = new Client({
-      connectionString,
+      connectionString: connStr,
       connectionTimeoutMillis: timeout,
-      ssl: connectionString.includes('?sslmode=require')
-        ? { rejectUnauthorized: false }
-        : undefined,
     });
   }
 
