@@ -9,7 +9,7 @@ export const CONFIG = {
     ORACLE: ['oracle://', 'oracledb://'],
   } as const,
   DEFAULT_OUTPUT: {
-    RAW: 'schemix-out.txt',
-    MARKDOWN: 'schemix-out.md'
+    RAW: 'schiba-out.txt',
+    MARKDOWN: 'schiba-out.md'
   }
 };

@@ -34,7 +34,7 @@ coverage/
 .env.*.local
 
 # Project specific files
-schemix-out.txt
+schiba-out.txt
 repomix-output.txt
 
 # Temporary files

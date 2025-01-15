@@ -5,32 +5,32 @@ interface ErrorDetails {
   [key: string]: unknown;
 }
 
-export class SchemixError extends Error {
+export class SchibaError extends Error {
   constructor(
     message: string,
     public code: string,
     public details?: ErrorDetails
   ) {
     super(message);
-    this.name = 'SchemixError';
+    this.name = 'SchibaError';
   }
 }
 
-export class ConnectionError extends SchemixError {
+export class ConnectionError extends SchibaError {
   constructor(message: string, details?: ErrorDetails) {
     super(message, 'CONNECTION_ERROR', details);
     this.name = 'ConnectionError';
   }
 }
 
-export class ValidationError extends SchemixError {
+export class ValidationError extends SchibaError {
   constructor(message: string, details?: ErrorDetails) {
     super(message, 'VALIDATION_ERROR', details);
     this.name = 'ValidationError';
   }
 }
 
-export class SchemaExtractionError extends SchemixError {
+export class SchemaExtractionError extends SchibaError {
   constructor(message: string, details?: ErrorDetails) {
     super(message, 'SCHEMA_EXTRACTION_ERROR', details);
     this.name = 'SchemaExtractionError';

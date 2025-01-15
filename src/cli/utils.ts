@@ -3,7 +3,7 @@ import { EMOJI_MAP } from '../utils/constants';
 import { CONFIG } from '../config/default';
 
 export function printHeader(): void {
-  console.log(chalk.blue(`${EMOJI_MAP.database} schemix v${CONFIG.VERSION}`));
+  console.log(chalk.blue(`${EMOJI_MAP.database} schiba v${CONFIG.VERSION}`));
   console.log('Extract database schemas in a compact format for AI context windows\n');
 }
 

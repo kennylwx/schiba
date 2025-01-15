@@ -148,9 +148,9 @@ function printSummary(
     const sizeFormatted = formatStorageSize(stats.totalSize);
 
     // Version and info header
-    console.log(chalk.dim(`Schemix v${CONFIG.VERSION}`));
+    console.log(chalk.dim(`Schiba v${CONFIG.VERSION}`));
     console.log(
-      chalk.dim('Please check https://github.com/kennylwx/schemix for more information.\n')
+      chalk.dim('Please check https://github.com/kennylwx/schiba for more information.\n')
     );
 
     // Main content block with single separator

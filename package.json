@@ -1,5 +1,5 @@
 {
-  "name": "schemix",
+  "name": "schiba",
   "version": "0.1.0",
   "description": "Extract database schema in a compact format for AI chat context",
   "type": "module",
@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "schemix": "bin/cli.js"
+    "schiba": "bin/cli.js"
   },
   "files": [
     "dist",

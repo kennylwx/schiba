@@ -1,4 +1,4 @@
-# Schemix 🔍
+# Schiba 🔍
 
 Extract and format database schemas for AI context windows. Optimized for use with LLMs like Claude, GPT-4, and others.
 
@@ -14,13 +14,13 @@ Extract and format database schemas for AI context windows. Optimized for use wi
 ## Installation 📦
 
 ```bash
-npm install -g schemix
+npm install -g schiba
 ```
 
 Or run directly with npx:
 
 ```bash
-npx schemix
+npx schiba
 ```
 
 ## Usage 🛠️
@@ -29,16 +29,16 @@ Basic usage:
 
 ```bash
 # PostgreSQL
-schemix "postgresql://user:password@localhost:5432/dbname"
+schiba "postgresql://user:password@localhost:5432/dbname"
 
 # MongoDB
-schemix "mongodb://user:password@localhost:27017/dbname"
+schiba "mongodb://user:password@localhost:27017/dbname"
 
 # Output as markdown
-schemix "postgresql://localhost:5432/dbname" --format markdown
+schiba "postgresql://localhost:5432/dbname" --format markdown
 
 # Custom output file
-schemix "postgresql://localhost:5432/dbname" -f my-schema.md
+schiba "postgresql://localhost:5432/dbname" -f my-schema.md
 ```
 
 ### Options
@@ -97,7 +97,7 @@ Formatted tables with full documentation:
 
 ## Token Analysis 🤖
 
-Schemix provides detailed token usage analysis for different AI models:
+schiba provides detailed token usage analysis for different AI models:
 
 - Estimates for Claude, GPT-4, and GPT-3.5
 - Token breakdown by content type
@@ -140,7 +140,7 @@ MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Security 🔒
 
-Schemix automatically detects potentially sensitive tables and provides warnings. However, always review the output before sharing, especially when dealing with:
+schiba automatically detects potentially sensitive tables and provides warnings. However, always review the output before sharing, especially when dealing with:
 
 - User data tables
 - Authentication systems

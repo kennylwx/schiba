@@ -9,12 +9,12 @@ import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
   program
-    .name('schemix')
+    .name('schiba')
     .description(
-      'schemix - Extract and compact database schemas for AI context windows\n\n' +
+      'schiba - Extract and compact database schemas for AI context windows\n\n' +
         'Example usage:\n' +
-        '  $ schemix "postgresql://user:password@localhost:5432/dbname"\n' +
-        '  $ schemix "mongodb://user:password@localhost:27017/dbname" --format markdown\n\n' +
+        '  $ schiba "postgresql://user:password@localhost:5432/dbname"\n' +
+        '  $ schiba "mongodb://user:password@localhost:27017/dbname" --format markdown\n\n' +
         'Supported databases:\n' +
         Object.entries(CONFIG.SUPPORTED_DATABASES)
           .map(([db, prefixes]) => `  - ${db} (${prefixes.join(', ')})`)
