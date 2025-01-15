@@ -1,4 +1,4 @@
-# Schiba 🗄️
+# 🐕 Schiba
 
 A specialized CLI tool for extracting and formatting database schemas, optimized for AI context windows. Schiba generates compact, token-efficient schema representations for use with Large Language Models (LLMs).
 
@@ -34,8 +34,8 @@ schiba "postgresql://user:pass@localhost:5432/mydb"
 # MongoDB
 schiba "mongodb://user:pass@localhost:27017/mydb"
 
-# With custom format and output
-schiba "postgresql://localhost/mydb" --format markdown -f schema.md
+# With custom format and output and copy to clipboard
+schiba "postgresql://localhost/mydb" --format markdown -f schema.md -c
 ```
 
 ### Command Options
@@ -44,14 +44,14 @@ schiba "postgresql://localhost/mydb" --format markdown -f schema.md
 schiba <connection-string> [options]
 
 Options:
-  -f, --filename <name>    Output filename (default: schiba-out.txt/md)
-  -d, --directory <path>   Output directory (default: current directory)
-  -t, --timeout <ms>       Connection timeout (default: 10000ms)
-  --format <type>          Output format: "raw" or "markdown"
-  --verbose               Enable detailed logging
-  -c, --copy              Copy output to clipboard
-  -v, --version           Display version
-  -h, --help              Show help
+  -f, --filename <name>     Output filename (default: schiba-out.txt/md)
+  -d, --directory <path>    Output directory (default: current directory)
+  -t, --timeout <ms>        Connection timeout (default: 10000ms)
+  --format <type>           Output format: "raw" or "markdown"
+  --verbose                 Enable detailed logging
+  -c, --copy                Copy output to clipboard
+  -v, --version             Display version
+  -h, --help                Show help
 ```
 
 ### Supported Databases
@@ -117,28 +117,6 @@ User account information
 | users_pkey | CREATE UNIQUE INDEX users_pkey ON users USING btree (id) |
 ```
 
-## Schema Analysis Features
-
-### Token Optimization
-
-- Automatic token counting for different AI models
-- Token usage breakdown by content type
-- Comparison with plain text formats
-- Optimization recommendations
-
-### Security Analysis
-
-- Detection of sensitive data patterns
-- Warning indicators for security-critical tables
-- Automated security recommendations
-
-### Schema Statistics
-
-- Table and column counts
-- Index analysis
-- Storage size estimation
-- Schema complexity metrics
-
 ## Development
 
 ```bash
@@ -159,50 +137,6 @@ npm run build
 npm run lint
 npm run format
 ```
-
-### Project Structure
-
-```
-src/
-├── cli/           # Command line interface
-├── core/          # Core analysis logic
-│   ├── analyzers/ # Database-specific analyzers
-│   └── formatters/# Output formatters
-├── services/      # Shared services
-│   ├── database/  # Database connections
-│   └── tokenizer/ # Token analysis
-└── utils/         # Utilities and helpers
-```
-
-## Error Handling
-
-Schiba includes comprehensive error handling for:
-
-- Invalid connection strings
-- Authentication failures
-- Network timeouts
-- Permission issues
-- Schema extraction errors
-
-Error messages are user-friendly with detailed debugging information in verbose mode.
-
-## Security Considerations
-
-- Sensitive data detection for:
-  - Authentication tables
-  - User information
-  - Security configurations
-  - Access control systems
-- Automatic warning system for sensitive schemas
-- Safe handling of connection credentials
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/enhancement`)
-3. Commit your changes (`git commit -m 'Add enhancement'`)
-4. Push to branch (`git push origin feature/enhancement`)
-5. Open a Pull Request
 
 ## License
 
