@@ -153,7 +153,7 @@ function printSummary(
     const tokenEstimates = tokenCounter.countTokens(JSON.stringify(stats));
 
     // Version and info header
-    console.log(chalk.dim(`Schiba v${CONFIG.VERSION}`));
+    console.log(chalk.dim(`🐕 Schiba v${CONFIG.VERSION}`));
     console.log(
       chalk.dim('Please check https://github.com/kennylwx/schiba for more information.\n')
     );
