@@ -8,6 +8,7 @@ import { CLIOptions } from '../types.js';
 import { createFormatter } from '@/core/formatters';
 import { CONFIG } from '@/config/default';
 import { EMOJI_MAP } from '@/utils/constants';
+import { TokenCounterImpl } from '@/services/tokenizer/implementations';
 
 export async function extractSchema(dbString: string, options: CLIOptions): Promise<void> {
   const spinner = ora('Connecting to database...').start();
@@ -147,6 +148,10 @@ function printSummary(
     const durationFormatted = formatDuration(meta.duration);
     const sizeFormatted = formatStorageSize(stats.totalSize);
 
+    // Calculate token estimates
+    const tokenCounter = new TokenCounterImpl();
+    const tokenEstimates = tokenCounter.countTokens(JSON.stringify(stats));
+
     // Version and info header
     console.log(chalk.dim(`Schiba v${CONFIG.VERSION}`));
     console.log(
@@ -177,18 +182,30 @@ function printSummary(
         )
     );
 
+    // Token estimation block
+    console.log(
+      chalk.white('\nToken Estimates:') +
+        chalk.white('Claude: ') +
+        chalk.cyan(`${tokenEstimates.claude.toLocaleString()} tokens`) +
+        chalk.dim(' | ') +
+        chalk.white('GPT-4: ') +
+        chalk.cyan(`${tokenEstimates.gpt4.toLocaleString()} tokens`) +
+        chalk.dim(' | ') +
+        chalk.white('GPT-3.5: ') +
+        chalk.cyan(`${tokenEstimates.gpt35.toLocaleString()} tokens`)
+    );
+
     // Output info with consistent coloring
     console.log(
-      chalk.white('Directory: ') +
+      '\n' +
+        chalk.white('Directory: ') +
         chalk.white(outputPath) +
         chalk.dim(' | Format: ') +
         chalk.dim(meta.format) +
         '\n'
     );
 
-    // Bottom separator and success message
-
-    // Single success message with proper spacing
+    // Success message
     const successMessage = meta.copiedToClipboard
       ? 'Schema extracted and copied to clipboard!'
       : 'Schema extracted successfully!';
