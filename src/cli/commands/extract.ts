@@ -159,8 +159,8 @@ function printSummary(
     );
 
     // Main content block with single separator
-    console.log(chalk.white(`${EMOJI_MAP.stats} Breakdown:`));
-    console.log(chalk.dim('─────────────'));
+    // console.log(chalk.white(`${EMOJI_MAP.stats} Breakdown:`));
+    // console.log(chalk.dim('─────────────'));
 
     // Stats block with consistent coloring
     console.log(
@@ -174,17 +174,19 @@ function printSummary(
 
     // Objects line with consistent coloring
     console.log(
-      chalk.white(`Tables: ${stats.details.tables || 0}`) +
-        chalk.dim(
-          ` | Columns: ${totalColumns} | ` +
-            `Indexes: ${totalIndexes} | ` +
-            `Enums: ${stats.details.enums || 0}`
-        )
+      chalk.white(`Breakdown: `) +
+        chalk.bold.yellow(`${stats.details.tables || 0} tables`) +
+        chalk.dim(` | `) +
+        chalk.bold.yellow(`${totalColumns || 0} columns`) +
+        chalk.dim(` | `) +
+        chalk.bold.yellow(`${totalIndexes || 0} indexes`) +
+        chalk.dim(` | `) +
+        chalk.bold.yellow(`${stats.details.enums || 0} enums`)
     );
 
     // Token estimation block
     console.log(
-      chalk.white('\nToken Estimates:') +
+      chalk.white('Token Usage: ') +
         chalk.white('Claude: ') +
         chalk.cyan(`${tokenEstimates.claude.toLocaleString()} tokens`) +
         chalk.dim(' | ') +
@@ -198,8 +200,8 @@ function printSummary(
     // Output info with consistent coloring
     console.log(
       '\n' +
-        chalk.white('Directory: ') +
-        chalk.white(outputPath) +
+        chalk.dim('Directory: ') +
+        chalk.dim(outputPath) +
         chalk.dim(' | Format: ') +
         chalk.dim(meta.format) +
         '\n'
@@ -210,7 +212,7 @@ function printSummary(
       ? 'Schema extracted and copied to clipboard!'
       : 'Schema extracted successfully!';
 
-    console.log(`${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`);
+    console.log(chalk.green(`${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`));
 
     // Security warning (if needed)
     if (stats.hasSensitiveData) {
