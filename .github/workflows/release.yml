@@ -1,4 +1,4 @@
-name: Build & Release
+name: Package & Release
 
 on:
   workflow_dispatch:
@@ -165,9 +165,9 @@ jobs:
       - name: Publish to NPM
         run: |
           if [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"alpha"* ]] || [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"beta"* ]] || [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"rc"* ]]; then
-            pnpm publish --tag next
+            pnpm publish --tag next --no-git-checks
           else
-            pnpm publish
+            pnpm publish --no-git-checks
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
