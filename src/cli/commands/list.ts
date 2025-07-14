@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import { configManager } from '../../config/manager';
 import { logger } from '../../utils/logger';
-import { EMOJI_MAP } from '../../utils/constants';
 import { configPaths } from '@/config/paths';
 
 interface ConnectionDetails {
@@ -38,7 +37,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       return;
     }
 
-    console.log(chalk.blue(`\n${EMOJI_MAP.connection} Configured Connections:\n`));
+    showConfigLocation();
 
     // Parse connection details
     const connectionDetails: ConnectionDetails[] = connections.map(
@@ -115,7 +114,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
     if (!options.showPasswords) {
       console.log(chalk.dim('\nTip: Use --show-passwords to reveal passwords'));
     }
-    showConfigLocation();
+
     console.log();
   } catch (error) {
     logger.error(`Failed to list connections: ${(error as Error).message}`);
@@ -196,5 +195,5 @@ function stripAnsi(str: string): string {
 
 export function showConfigLocation(): void {
   const configPath = configPaths.getConfigPath();
-  console.log(chalk.dim(`\nConfiguration location: ${configPath}`));
+  console.log(chalk.dim(`\nConfiguration loaded from ${configPath}\n`));
 }

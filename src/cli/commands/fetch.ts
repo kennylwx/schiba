@@ -98,6 +98,7 @@ interface SummaryMetadata {
   copiedToClipboard?: boolean;
   connectionTag: string;
 }
+
 function printSummary(
   dbType: string,
   stats: SchemaStats,
@@ -108,14 +109,14 @@ function printSummary(
     const tokenCounter = new TokenCounterImpl();
     const tokenEstimates = tokenCounter.countTokens(JSON.stringify(stats));
 
-    console.log(chalk.dim(`🐕 Schiba v${CONFIG.VERSION}`));
-    console.log(
-      chalk.dim('Please check https://github.com/kennylwx/schiba for more information.\n')
-    );
+    console.log(chalk.dim(`\n🐕 Schiba v${CONFIG.VERSION}\n`));
+    console.log(chalk.dim('Visit https://github.com/kennylwx/schiba for more details.\n'));
+
+    console.log('\n' + chalk.white('Schema exported to ') + chalk.white(outputPath) + '\n');
 
     console.log(
-      chalk.white('Connection: ') +
-        chalk.bold.cyan(meta.connectionTag) +
+      chalk.bold.dim('Connection: ') +
+        chalk.bold.dim(meta.connectionTag) +
         chalk.dim(' | Database: ') +
         chalk.dim(dbType) +
         chalk.dim(' | Duration: ') +
@@ -125,7 +126,7 @@ function printSummary(
     );
 
     console.log(
-      chalk.white(`Breakdown: `) +
+      chalk.bold.dim(`Breakdown: `) +
         chalk.dim(`${stats.details.tables || 0} tables`) +
         chalk.dim(` | `) +
         chalk.dim(`${stats.details.columns || 0} columns`) +
@@ -136,15 +137,13 @@ function printSummary(
     );
 
     console.log(
-      chalk.white('Token Usage: ') +
-        chalk.white('Claude: ') +
-        chalk.cyan(`${tokenEstimates.claude.toLocaleString()} tokens`) +
+      chalk.bold.dim('Token Usage: ') +
+        chalk.bold.dim('Claude: ') +
+        chalk.dim(`${tokenEstimates.claude.toLocaleString()} tokens`) +
         chalk.dim(' | ') +
-        chalk.white('GPT-4: ') +
-        chalk.cyan(`${tokenEstimates.gpt4.toLocaleString()} tokens`)
+        chalk.bold.dim('GPT-4: ') +
+        chalk.dim(`${tokenEstimates.gpt4.toLocaleString()} tokens`)
     );
-
-    console.log('\n' + chalk.dim('Directory: ') + chalk.dim(outputPath) + '\n');
 
     const successMessage = meta.copiedToClipboard
       ? 'Schema extracted and copied to clipboard!'
