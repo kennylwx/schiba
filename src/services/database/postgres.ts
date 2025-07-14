@@ -1,16 +1,23 @@
 import { Client, type PostgresClient } from '../../utils/pg-client';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
+import type { ConnectionConfig } from '../../core/types';
+import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
 
 export class PostgresConnection extends BaseConnection {
   private client: PostgresClient;
+  private connectionConfig: ConnectionConfig;
 
-  constructor(connectionString: string, options: ConnectionOptions = {}) {
-    super(connectionString, options);
+  constructor(connectionConfig: ConnectionConfig, options: ConnectionOptions = {}) {
+    super(connectionConfig.url, options);
+    this.connectionConfig = connectionConfig;
+
+    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
+
     this.client = new Client({
-      connectionString: this.connectionString,
+      connectionString: connStr,
       connectionTimeoutMillis: this.options.timeout,
-      ssl: this.options.ssl ? { rejectUnauthorized: false } : undefined,
+      ssl: buildSSLConfig(connectionConfig.sslMode),
     });
   }
 
@@ -52,6 +59,12 @@ export class PostgresConnection extends BaseConnection {
 
     if (message.includes('ECONNREFUSED')) {
       return new Error('Connection refused. Please check if the database server is running.');
+    }
+
+    if (message.includes('server does not support SSL')) {
+      return new Error(
+        'The server does not support SSL connections. Use --no-ssl flag when adding the connection.'
+      );
     }
 
     return error;

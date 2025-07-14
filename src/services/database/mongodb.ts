@@ -1,13 +1,14 @@
 import { MongoClient } from 'mongodb';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
+import type { ConnectionConfig } from '../../core/types';
 
 export class MongoConnection extends BaseConnection {
   private client: MongoClient;
 
-  constructor(connectionString: string, options: ConnectionOptions = {}) {
-    super(connectionString, options);
-    this.client = new MongoClient(connectionString, {
+  constructor(connectionConfig: ConnectionConfig, options: ConnectionOptions = {}) {
+    super(connectionConfig.url, options);
+    this.client = new MongoClient(connectionConfig.url, {
       serverSelectionTimeoutMS: this.options.timeout,
     });
   }

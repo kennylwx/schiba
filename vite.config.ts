@@ -25,6 +25,8 @@ export default defineConfig({
         'stream',
         'process',
         'clipboardy',
+        'os',
+        'dotenv',
       ],
     },
     sourcemap: true,
@@ -44,6 +46,6 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['pg', 'clipboardy'],
-    exclude: ['fs', 'path'],
+    exclude: ['fs', 'path', 'os'],
   },
 });

@@ -1,5 +1,5 @@
 import { MongoClient, Db, Document, IndexDescription } from 'mongodb';
-import type { SchemaStats } from '../types';
+import type { SchemaStats, ConnectionConfig } from '../types';
 
 export interface MongoCollection {
   collection: string;
@@ -16,8 +16,8 @@ export interface MongoDocument extends Document {
 export class MongoAnalyzer {
   private client: MongoClient;
 
-  constructor(connectionString: string, timeout: number) {
-    this.client = new MongoClient(connectionString, {
+  constructor(connectionConfig: ConnectionConfig, timeout: number) {
+    this.client = new MongoClient(connectionConfig.url, {
       serverSelectionTimeoutMS: timeout,
     });
   }

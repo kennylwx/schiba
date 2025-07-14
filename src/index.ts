@@ -2,50 +2,61 @@
 
 import { program } from 'commander';
 import { CONFIG } from './config/default';
-import { extractSchema } from './cli/commands/extract';
-import { validateConnectionString } from './utils/helpers';
-import type { CLIOptions } from './cli/types';
+import { addConnection } from './cli/commands/add';
+import { fetchSchema } from './cli/commands/fetch';
+import { listConnections } from './cli/commands/list';
+import { removeConnection } from './cli/commands/remove';
+import { setDefaultConnection } from './cli/commands/default';
+import { testConnection } from './cli/commands/test';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
   program
     .name('schiba')
     .description(
-      'schiba - Extract and compact database schemas for AI context windows\n\n' +
-        'Example usage:\n' +
-        '  $ schiba "postgresql://user:password@localhost:5432/dbname"\n' +
-        '  $ schiba "mongodb://user:password@localhost:27017/dbname" --format markdown\n\n' +
-        'Supported databases:\n' +
-        Object.entries(CONFIG.SUPPORTED_DATABASES)
-          .map(([db, prefixes]) => `  - ${db} (${prefixes.join(', ')})`)
-          .join('\n') +
-        '\n\nOutput formats:\n' +
-        '  - raw (default): JSON format with AI context header\n' +
-        '  - markdown: Tables and documentation in markdown\n'
+      'schiba - Database schema extraction tool with connection management\n\n' +
+        'Quick start:\n' +
+        '  $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl\n' +
+        '  $ schiba fetch\n\n' +
+        'Commands:\n' +
+        '  add <tag> <connection>  Add a database connection\n' +
+        '  fetch [tag]            Fetch schema (uses default if no tag)\n' +
+        '  list                   List all connections\n' +
+        '  remove <tag>           Remove a connection\n' +
+        '  default <tag>          Set default connection\n' +
+        '  test [tag]             Test a connection'
     )
-    .version(CONFIG.VERSION, '-v, --version', 'Output the current version')
-    .argument('<db-string>', 'Database connection string (must be wrapped in quotes)')
+    .version(CONFIG.VERSION, '-v, --version', 'Output the current version');
+
+  // Add command
+  program
+    .command('add <tag> <connection-string>')
+    .description('Add a database connection')
+    .option('--no-ssl', 'Disable SSL connection')
+    .option('--default', 'Set as default connection')
+    .option('--description <text>', 'Add a description')
+    .action(async (tag: string, connectionString: string, options) => {
+      try {
+        await addConnection(tag, connectionString, options);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Fetch command
+  program
+    .command('fetch [tag]')
+    .description('Fetch database schema (uses default if no tag provided)')
     .option('-f, --filename <name>', 'Output filename')
     .option('-d, --directory <path>', 'Output directory (default: current directory)')
-    .option(
-      '-t, --timeout <ms>',
-      'Connection timeout in milliseconds',
-      String(CONFIG.CONNECTION_TIMEOUT)
-    )
-    .option('--format <type>', 'Output format: "raw" or "markdown"', 'raw')
-    .option('--verbose', 'Enable verbose logging')
+    .option('-t, --timeout <ms>', 'Connection timeout in milliseconds')
+    .option('--format <type>', 'Output format: "raw" or "markdown"')
     .option('-c, --copy', 'Copy the output to clipboard')
-    .addHelpText('after', '\nNote: Connection string must be wrapped in quotes')
-    .action(async (dbString: string, options: CLIOptions) => {
+    .option('--verbose', 'Enable verbose logging')
+    .action(async (tag: string | undefined, options) => {
       try {
-        // Set logging level based on verbose flag
         if (options.verbose) {
           logger.setLevel(LogLevel.DEBUG);
-        }
-
-        // Validate connection string
-        if (!validateConnectionString(dbString)) {
-          throw new Error('Invalid connection string format');
         }
 
         // Validate format option
@@ -58,22 +69,62 @@ async function main(): Promise<void> {
           options.format = 'markdown';
         }
 
-        await extractSchema(dbString, {
-          filename: options.filename,
-          directory: options.directory,
-          timeout: options.timeout ? options.timeout : CONFIG.CONNECTION_TIMEOUT,
-          format: options.format as 'raw' | 'markdown',
-          copy: options.copy,
-        });
+        await fetchSchema(tag, options);
       } catch (error) {
         if (error instanceof Error) {
           logger.error(error.message);
           if (options.verbose) {
             logger.error('Stack trace:', error);
           }
-        } else {
-          logger.error('An unknown error occurred');
         }
+        process.exit(1);
+      }
+    });
+
+  // List command
+  program
+    .command('list')
+    .description('List all connections')
+    .action(async () => {
+      try {
+        await listConnections();
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Remove command
+  program
+    .command('remove <tag>')
+    .description('Remove a connection')
+    .action(async (tag: string) => {
+      try {
+        await removeConnection(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Default command
+  program
+    .command('default <tag>')
+    .description('Set default connection')
+    .action(async (tag: string) => {
+      try {
+        await setDefaultConnection(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Test command
+  program
+    .command('test [tag]')
+    .description('Test a connection')
+    .action(async (tag: string | undefined) => {
+      try {
+        await testConnection(tag);
+      } catch (error) {
         process.exit(1);
       }
     });

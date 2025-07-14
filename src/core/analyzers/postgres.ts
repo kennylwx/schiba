@@ -1,5 +1,6 @@
 import { Client, type PostgresClient } from '../../utils/pg-client';
-import type { SchemaStats } from '../types';
+import type { SchemaStats, ConnectionConfig } from '../types';
+import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
 
 export interface PostgresTable {
   columns?: Array<{
@@ -24,15 +25,14 @@ export interface PostgresSchema {
 export class PostgresAnalyzer {
   private client: PostgresClient;
 
-  constructor(connectionString: string, timeout: number) {
-    // Add ssl=no-verify if it's not already present
-    const connStr = connectionString.includes('ssl=')
-      ? connectionString
-      : `${connectionString}${connectionString.includes('?') ? '&' : '?'}ssl=no-verify`;
+  constructor(connectionConfig: ConnectionConfig, timeout: number) {
+    // Append SSL mode to connection string
+    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
 
     this.client = new Client({
       connectionString: connStr,
       connectionTimeoutMillis: timeout,
+      ssl: buildSSLConfig(connectionConfig.sslMode),
     });
   }
 

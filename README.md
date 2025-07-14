@@ -1,15 +1,6 @@
 # 🐕 Schiba
 
-A specialized CLI tool for extracting and formatting database schemas, optimized for AI context windows. Schiba generates compact, token-efficient schema representations for use with Large Language Models (LLMs).
-
-## Key Features
-
-- Extract database schemas with contextual metadata and AI-optimized formatting
-- Intelligent token usage analysis for Claude, GPT-4, and GPT-3.5
-- Multiple output formats with AI context headers and schema documentation
-- Built-in security analysis for sensitive data detection
-- Automatic clipboard support for quick AI context insertion
-- Progress indicators and detailed operation statistics
+Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
 
 ## Installation
 
@@ -17,46 +8,89 @@ A specialized CLI tool for extracting and formatting database schemas, optimized
 npm install -g schiba
 ```
 
-For one-time use:
+## Quick Start
 
 ```bash
-npx schiba
+# Add your first connection
+schiba add local "postgresql://localhost:5432/mydb" --no-ssl
+
+# Fetch the schema
+schiba fetch
 ```
 
-## Usage
+## Commands
 
-Basic schema extraction:
-
-```bash
-# PostgreSQL
-schiba "postgresql://user:pass@localhost:5432/mydb"
-
-# MongoDB
-schiba "mongodb://user:pass@localhost:27017/mydb"
-
-# With custom format and output and copy to clipboard
-schiba "postgresql://localhost/mydb" --format markdown -f schema.md -c
-```
-
-### Command Options
+### Add Connection
 
 ```bash
-schiba <connection-string> [options]
+schiba add <tag> <connection-string> [options]
 
 Options:
-  -f, --filename <name>     Output filename (default: schiba-out.txt/md)
-  -d, --directory <path>    Output directory (default: current directory)
-  -t, --timeout <ms>        Connection timeout (default: 10000ms)
-  --format <type>           Output format: "raw" or "markdown"
-  --verbose                 Enable detailed logging
-  -c, --copy                Copy output to clipboard
-  -v, --version             Display version
-  -h, --help                Show help
+--no-ssl Disable SSL connection
+--default Set as default connection
+--description <text> Add a description
+
+Examples:
+schiba add prod "postgresql://user:pass@host:5432/db"
+schiba add local "postgresql://localhost:5432/mydb" --no-ssl --default
 ```
 
-### Supported Databases
+### Fetch Schema
 
-Currently implemented:
+```bash
+schiba fetch [tag] [options]
+
+Options:
+-f, --filename <name> Output filename
+-d, --directory <path> Output directory
+-t, --timeout <ms> Connection timeout
+--format <type> Output format: "raw" or "markdown"
+-c, --copy Copy to clipboard
+--verbose Enable detailed logging
+
+Examples:
+schiba fetch # Uses default connection
+schiba fetch production # Uses specific connection
+schiba fetch --format markdown --copy
+```
+
+### Other Commands
+
+```bash
+schiba list # List all connections
+schiba remove <tag> # Remove a connection
+schiba default <tag> # Set default connection
+schiba test [tag] # Test a connection
+```
+
+## Configuration
+
+Schiba automatically creates a configuration file at .schiba/config.json in your project directory when you add your first connection.
+
+### Environment Variables
+
+Create a `.schiba/.env` file for sensitive data:
+
+```bash
+DB_USER=myuser
+DB_PASS=mypass
+```
+
+Use in connection strings:
+
+```bash
+schiba add prod "postgresql://${DB_USER}:${DB_PASS}@host/db"
+```
+
+### SSL Configuration
+
+For local databases that don't support SSL:
+
+```bash
+schiba add local "postgresql://localhost:5432/mydb" --no-ssl
+```
+
+## Supported Databases
 
 - PostgreSQL (`postgresql://`, `postgres://`)
 - MongoDB (`mongodb://`, `mongodb+srv://`)
@@ -65,81 +99,13 @@ Currently implemented:
 
 ### Raw Format (Default)
 
-Compact JSON with AI context header:
-
-```json
-{
-  "tables": {
-    "users": {
-      "columns": [
-        {
-          "column": "id",
-          "type": "uuid",
-          "nullable": "NO",
-          "constraints": ["PRIMARY KEY"]
-        }
-      ],
-      "indexes": [
-        {
-          "name": "users_pkey",
-          "definition": "CREATE UNIQUE INDEX users_pkey ON users USING btree (id)"
-        }
-      ]
-    }
-  },
-  "enums": {
-    "user_role": ["admin", "user", "guest"]
-  }
-}
-```
+Compact JSON with AI context header and token usage analysis.
 
 ### Markdown Format
 
-Documentation-style output with formatted tables:
-
-```markdown
-## Tables
-
-### users
-
-User account information
-
-#### Columns
-
-| Column | Type | Nullable | Default | Constraints |
-| ------ | ---- | -------- | ------- | ----------- |
-| id     | uuid | NO       | null    | PRIMARY KEY |
-
-#### Indexes
-
-| Name       | Definition                                               |
-| ---------- | -------------------------------------------------------- |
-| users_pkey | CREATE UNIQUE INDEX users_pkey ON users USING btree (id) |
-```
-
-## Development
-
-```bash
-# Setup
-git clone <repository>
-npm install
-
-# Development
-npm run dev
-
-# Testing
-npm test
-
-# Build
-npm run build
-
-# Lint and Format
-npm run lint
-npm run format
-```
+Documentation-style output with formatted tables and schema information.
 
 ## License
 
 MIT License
-
-**Note**: Schiba is designed for development and documentation purposes. Always review schema output before sharing sensitive database information.
+Note: Schiba is designed for development and documentation purposes. Always review schema output before sharing sensitive database information.

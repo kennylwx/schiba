@@ -36,3 +36,25 @@ export class SchemaExtractionError extends SchibaError {
     this.name = 'SchemaExtractionError';
   }
 }
+
+// Add configuration-related errors
+export class ConfigError extends SchibaError {
+  constructor(message: string, details?: ErrorDetails) {
+    super(message, 'CONFIG_ERROR', details);
+    this.name = 'ConfigError';
+  }
+}
+
+export class NoConnectionError extends ConfigError {
+  constructor(message: string = 'No connections configured', details?: ErrorDetails) {
+    super(message, details);
+    this.name = 'NoConnectionError';
+  }
+}
+
+export class ConnectionNotFoundError extends ConfigError {
+  constructor(tag: string, details?: ErrorDetails) {
+    super(`Connection '${tag}' not found`, details);
+    this.name = 'ConnectionNotFoundError';
+  }
+}
