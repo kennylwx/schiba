@@ -3,6 +3,7 @@ import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
 import type { ConnectionConfig } from '../../core/types';
 import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
+import chalk from 'chalk';
 
 export class PostgresConnection extends BaseConnection {
   private client: PostgresClient;
@@ -63,7 +64,13 @@ export class PostgresConnection extends BaseConnection {
 
     if (message.includes('server does not support SSL')) {
       return new Error(
-        'The server does not support SSL connections. Use --no-ssl flag when adding the connection.'
+        `The server does not support SSL connections.\n\n` +
+          `To fix this, disable SSL for your connection:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `Then try again:\n` +
+          `  ${chalk.cyan(`schiba fetch ${this.connectionConfig.tag}`)}\n\n` +
+          `To see all your connections:\n` +
+          `  ${chalk.cyan('schiba list')}`
       );
     }
 

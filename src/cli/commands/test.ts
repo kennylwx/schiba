@@ -31,7 +31,27 @@ export async function testConnection(tag?: string): Promise<void> {
     }
   } catch (error) {
     spinner.fail('Connection test failed');
-    logger.error(`Test failed: ${(error as Error).message}`);
+
+    if (error instanceof Error) {
+      console.error('\n' + chalk.red(error.message) + '\n');
+
+      // Add contextual help for test failures
+      if (!error.message.includes('schiba update')) {
+        console.log(chalk.yellow('Troubleshooting tips:'));
+        console.log(chalk.dim('  - Check your connection details: ') + chalk.cyan(`schiba list`));
+        console.log(
+          chalk.dim('  - Update connection settings: ') +
+            chalk.cyan(`schiba update ${tag || '<tag>'} <property> <value>`)
+        );
+        console.log(
+          chalk.dim('  - Common properties to update: ssl, host, port, username, password')
+        );
+        console.log();
+      }
+    } else {
+      logger.error(`Test failed: ${error}`);
+    }
+
     throw error;
   }
 }

@@ -2,12 +2,15 @@ import { MongoClient } from 'mongodb';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
 import type { ConnectionConfig } from '../../core/types';
+import chalk from 'chalk';
 
 export class MongoConnection extends BaseConnection {
   private client: MongoClient;
+  private connectionConfig: ConnectionConfig;
 
   constructor(connectionConfig: ConnectionConfig, options: ConnectionOptions = {}) {
     super(connectionConfig.url, options);
+    this.connectionConfig = connectionConfig;
     this.client = new MongoClient(connectionConfig.url, {
       serverSelectionTimeoutMS: this.options.timeout,
     });
@@ -51,6 +54,19 @@ export class MongoConnection extends BaseConnection {
 
     if (message.includes('connection timed out')) {
       return new Error('Connection timed out. Please check your network connection.');
+    }
+
+    // Add SSL-related error handling for MongoDB
+    if (message.includes('SSL') || message.includes('TLS')) {
+      return new Error(
+        `SSL/TLS connection error.\n\n` +
+          `To fix this, try disabling SSL:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `Or enable SSL if required:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl enable`)}\n\n` +
+          `Then test your connection:\n` +
+          `  ${chalk.cyan(`schiba test ${this.connectionConfig.tag}`)}`
+      );
     }
 
     return error instanceof Error ? error : new Error(message);

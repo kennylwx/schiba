@@ -71,6 +71,7 @@ export async function fetchSchema(tag: string | undefined, options: FetchOptions
     });
   } catch (error) {
     spinner.fail('Error fetching schema');
+
     throw error;
   }
 }

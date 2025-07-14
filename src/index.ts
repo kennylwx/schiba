@@ -76,10 +76,10 @@ async function main(): Promise<void> {
         await fetchSchema(tag, options);
       } catch (error) {
         if (error instanceof Error) {
-          logger.error(error.message);
-          if (options.verbose) {
-            logger.error('Stack trace:', error);
-          }
+          // Display the full error message including multi-line guidance
+          console.error('\n' + error.message + '\n');
+        } else {
+          logger.error(String(error));
         }
         process.exit(1);
       }
