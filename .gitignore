@@ -36,6 +36,7 @@ coverage/
 # Project specific files
 schiba-out.txt
 repomix-output.txt
+repomix-output.xml
 
 # Temporary files
 *.tmp
@@ -54,9 +55,3 @@ debug.log
 
 # Optional REPL history
 .node_repl_history
-
-repomix-output.xml
-repomix-output.txt
-
-.schiba/config.json
-.schiba/
