@@ -1,4 +1,4 @@
-# 🐕 Schiba (Database Schema Mixer)
+# 🐕 Schiba (Database Schema Extractor for LLM)
 
 Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
 
