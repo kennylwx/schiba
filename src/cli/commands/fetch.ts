@@ -98,7 +98,6 @@ interface SummaryMetadata {
   copiedToClipboard?: boolean;
   connectionTag: string;
 }
-
 function printSummary(
   dbType: string,
   stats: SchemaStats,
@@ -112,32 +111,44 @@ function printSummary(
     console.log(chalk.dim(`\n🐕 Schiba v${CONFIG.VERSION}\n`));
     console.log(chalk.dim('Visit https://github.com/kennylwx/schiba for more details.\n'));
 
-    console.log('\n' + chalk.white('Schema exported to ') + chalk.white(outputPath) + '\n');
+    console.log(chalk.white('Schema exported to ') + chalk.white(outputPath) + '\n');
 
+    // Line 1: Connection info
     console.log(
-      chalk.bold.dim('Connection: ') +
-        chalk.bold.dim(meta.connectionTag) +
-        chalk.dim(' | Database: ') +
+      chalk.dim('1.  ') +
+        chalk.bold.dim('Connection: ') +
+        chalk.dim('Tag: ') +
+        chalk.dim(meta.connectionTag) +
+        chalk.dim(' | ') +
+        chalk.dim('Database: ') +
         chalk.dim(dbType) +
-        chalk.dim(' | Duration: ') +
+        chalk.dim(' | ') +
+        chalk.dim('Duration: ') +
         chalk.dim(`${meta.duration}s`) +
-        chalk.dim(' | Size: ') +
+        chalk.dim(' | ') +
+        chalk.dim('Size: ') +
         chalk.dim(`${(stats.totalSize / 1024).toFixed(2)}KB`)
     );
 
+    // Line 2: Breakdown
     console.log(
-      chalk.bold.dim(`Breakdown: `) +
-        chalk.dim(`${stats.details.tables || 0} tables`) +
+      chalk.dim('2.  ') +
+        chalk.bold.dim(`Tables: `) +
+        chalk.dim(`${stats.details.tables || 0}`) +
         chalk.dim(` | `) +
-        chalk.dim(`${stats.details.columns || 0} columns`) +
+        chalk.dim(`Columns: `) +
+        chalk.dim(`${stats.details.columns || 0}`) +
         chalk.dim(` | `) +
-        chalk.dim(`${stats.details.indexes || 0} indexes`) +
+        chalk.dim(`Indexes: `) +
+        chalk.dim(`${stats.details.indexes || 0}`) +
         chalk.dim(` | `) +
-        chalk.dim(`${stats.details.enums || 0} enums`)
+        chalk.dim(`Enums: `) +
+        chalk.dim(`${stats.details.enums || 0}`)
     );
 
+    // Line 3: Token usage
     console.log(
-      chalk.bold.dim('Token Usage: ') +
+      chalk.dim('3.  ') +
         chalk.bold.dim('Claude: ') +
         chalk.dim(`${tokenEstimates.claude.toLocaleString()} tokens`) +
         chalk.dim(' | ') +
@@ -149,7 +160,7 @@ function printSummary(
       ? 'Schema extracted and copied to clipboard!'
       : 'Schema extracted successfully!';
 
-    console.log(chalk.green(`${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`));
+    console.log(chalk.green(`\n${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`));
   } catch (error) {
     console.log(chalk.green(`\n${EMOJI_MAP.success} Schema extracted successfully`));
   }
