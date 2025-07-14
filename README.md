@@ -1,4 +1,4 @@
-# 🐕 Schiba
+# 🐕 Schiba (Database Schema Mixer)
 
 Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
 
@@ -8,10 +8,6 @@ Database schema extraction tool with built-in connection management. Schiba gene
 npm install -g schiba
 
 yarn global add schiba
-
-# MacOS
-brew install schiba
-
 
 ```
 
