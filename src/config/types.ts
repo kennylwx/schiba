@@ -4,6 +4,7 @@ export interface ConnectionConfig {
   sslMode: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
   description?: string;
   created: string;
+  updatedAt?: string;
   lastUsed?: string;
 }
 

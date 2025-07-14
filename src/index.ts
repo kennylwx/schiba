@@ -8,25 +8,19 @@ import { listConnections } from './cli/commands/list';
 import { removeConnection } from './cli/commands/remove';
 import { setDefaultConnection } from './cli/commands/default';
 import { testConnection } from './cli/commands/test';
+import { copyConnectionString } from './cli/commands/copy';
+import { updateConnection, UpdateProperty } from './cli/commands/update';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
   program
     .name('schiba')
-    .description(
-      'schiba - Database schema extraction tool with connection management\n\n' +
-        'Quick start:\n' +
-        '  $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl\n' +
-        '  $ schiba fetch\n\n' +
-        'Commands:\n' +
-        '  add <tag> <connection>  Add a database connection\n' +
-        '  fetch [tag]            Fetch schema (uses default if no tag)\n' +
-        '  list                   List all connections\n' +
-        '  remove <tag>           Remove a connection\n' +
-        '  default <tag>          Set default connection\n' +
-        '  test [tag]             Test a connection'
-    )
-    .version(CONFIG.VERSION, '-v, --version', 'Output the current version');
+    .description('Database schema extraction tool with connection management')
+    .version(CONFIG.VERSION, '-v, --version', 'Output the current version')
+    .configureHelp({
+      sortSubcommands: true,
+      showGlobalOptions: true,
+    });
 
   // Add command
   program
@@ -51,7 +45,7 @@ async function main(): Promise<void> {
     .option('-d, --directory <path>', 'Output directory (default: current directory)')
     .option('-t, --timeout <ms>', 'Connection timeout in milliseconds')
     .option('--format <type>', 'Output format: "raw" or "markdown"')
-    .option('-c, --copy', 'Copy the output to clipboard')
+    .option('--no-copy', 'Do not copy output to clipboard')
     .option('--verbose', 'Enable verbose logging')
     .action(async (tag: string | undefined, options) => {
       try {
@@ -128,6 +122,59 @@ async function main(): Promise<void> {
         process.exit(1);
       }
     });
+
+  // Copy command
+  program
+    .command('copy <tag>')
+    .description('Copy connection string to clipboard')
+    .action(async (tag: string) => {
+      try {
+        await copyConnectionString(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Update command
+  program
+    .command('update <tag> <property> <value>')
+    .description(
+      'Update connection properties (ssl, username, password, host, port, database, schema)'
+    )
+    .action(async (tag: string, property: string, value: string) => {
+      try {
+        const validProperties: UpdateProperty[] = [
+          'ssl',
+          'username',
+          'password',
+          'host',
+          'port',
+          'database',
+          'schema',
+        ];
+        if (!validProperties.includes(property as UpdateProperty)) {
+          throw new Error(`Invalid property. Valid properties are: ${validProperties.join(', ')}`);
+        }
+        await updateConnection(tag, property as UpdateProperty, value);
+      } catch (error) {
+        if (error instanceof Error) {
+          logger.error(error.message);
+        }
+        process.exit(1);
+      }
+    });
+
+  // Add example usage after configuring all commands
+  program.addHelpText(
+    'after',
+    `
+Examples:
+  $ schiba add local "postgresql://localhost:5432/mydb"
+  $ schiba fetch
+  $ schiba list
+  $ schiba update local ssl disable
+  $ schiba copy local`
+  );
 
   await program.parseAsync();
 }

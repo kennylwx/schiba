@@ -14,7 +14,7 @@ npm install -g schiba
 
 ```bash
 # Add your first connection
-schiba add local "postgresql://localhost:5432/mydb" --no-ssl
+schiba add local "postgresql://localhost:5432/mydb"
 
 # Fetch the schema
 schiba fetch

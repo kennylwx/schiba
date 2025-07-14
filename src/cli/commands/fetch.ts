@@ -9,6 +9,7 @@ import { CONFIG } from '../../config/default';
 import { EMOJI_MAP } from '../../utils/constants';
 import { TokenCounterImpl } from '../../services/tokenizer/implementations';
 import { configManager } from '../../config/manager';
+import { SchemaStats } from '@/core/types';
 
 export interface FetchOptions {
   filename?: string;
@@ -35,7 +36,7 @@ export async function fetchSchema(tag: string | undefined, options: FetchOptions
     const preferences = configManager.getPreferences();
     const timeout = options.timeout || preferences?.timeout || CONFIG.CONNECTION_TIMEOUT;
     const format = options.format || preferences?.format || 'raw';
-    const shouldCopy = options.copy ?? preferences?.copy ?? false;
+    const shouldCopy = options.copy ?? preferences?.copy ?? true; // Default to true
 
     spinner.text = `Analyzing schema for '${connectionConfig.tag}'...`;
     const analyzer = await createAnalyzer(dbType, connectionConfig, timeout);
@@ -96,8 +97,12 @@ interface SummaryMetadata {
   copiedToClipboard?: boolean;
   connectionTag: string;
 }
-
-function printSummary(dbType: string, stats: any, outputPath: string, meta: SummaryMetadata): void {
+function printSummary(
+  dbType: string,
+  stats: SchemaStats,
+  outputPath: string,
+  meta: SummaryMetadata
+): void {
   try {
     const tokenCounter = new TokenCounterImpl();
     const tokenEstimates = tokenCounter.countTokens(JSON.stringify(stats));
@@ -111,7 +116,7 @@ function printSummary(dbType: string, stats: any, outputPath: string, meta: Summ
       chalk.white('Connection: ') +
         chalk.bold.cyan(meta.connectionTag) +
         chalk.dim(' | Database: ') +
-        chalk.bold.cyan(dbType) +
+        chalk.dim(dbType) +
         chalk.dim(' | Duration: ') +
         chalk.dim(`${meta.duration}s`) +
         chalk.dim(' | Size: ') +
@@ -120,13 +125,13 @@ function printSummary(dbType: string, stats: any, outputPath: string, meta: Summ
 
     console.log(
       chalk.white(`Breakdown: `) +
-        chalk.bold.yellow(`${stats.details.tables || 0} tables`) +
+        chalk.dim(`${stats.details.tables || 0} tables`) +
         chalk.dim(` | `) +
-        chalk.bold.yellow(`${stats.details.columns || 0} columns`) +
+        chalk.dim(`${stats.details.columns || 0} columns`) +
         chalk.dim(` | `) +
-        chalk.bold.yellow(`${stats.details.indexes || 0} indexes`) +
+        chalk.dim(`${stats.details.indexes || 0} indexes`) +
         chalk.dim(` | `) +
-        chalk.bold.yellow(`${stats.details.enums || 0} enums`)
+        chalk.dim(`${stats.details.enums || 0} enums`)
     );
 
     console.log(
@@ -135,20 +140,10 @@ function printSummary(dbType: string, stats: any, outputPath: string, meta: Summ
         chalk.cyan(`${tokenEstimates.claude.toLocaleString()} tokens`) +
         chalk.dim(' | ') +
         chalk.white('GPT-4: ') +
-        chalk.cyan(`${tokenEstimates.gpt4.toLocaleString()} tokens`) +
-        chalk.dim(' | ') +
-        chalk.white('GPT-3.5: ') +
-        chalk.cyan(`${tokenEstimates.gpt35.toLocaleString()} tokens`)
+        chalk.cyan(`${tokenEstimates.gpt4.toLocaleString()} tokens`)
     );
 
-    console.log(
-      '\n' +
-        chalk.dim('Directory: ') +
-        chalk.dim(outputPath) +
-        chalk.dim(' | Format: ') +
-        chalk.dim(meta.format) +
-        '\n'
-    );
+    console.log('\n' + chalk.dim('Directory: ') + chalk.dim(outputPath) + '\n');
 
     const successMessage = meta.copiedToClipboard
       ? 'Schema extracted and copied to clipboard!'

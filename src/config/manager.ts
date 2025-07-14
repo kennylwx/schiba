@@ -88,6 +88,78 @@ export class ConfigManager {
     logger.success(`Added connection '${tag}'${this.config!.default === tag ? ' (default)' : ''}`);
   }
 
+  public update(tag: string, property: string, value: string): void {
+    if (!this.config) {
+      throw new Error('No connections configured');
+    }
+
+    if (!this.config.connections[tag]) {
+      throw new Error(`Connection '${tag}' not found`);
+    }
+
+    const connection = this.config.connections[tag];
+    const url = new URL(connection.url);
+
+    switch (property) {
+      case 'ssl':
+        if (value === 'enable') {
+          connection.ssl = true;
+          connection.sslMode = 'prefer';
+        } else if (value === 'disable') {
+          connection.ssl = false;
+          connection.sslMode = 'disable';
+        } else {
+          throw new Error('SSL value must be "enable" or "disable"');
+        }
+        break;
+
+      case 'username':
+        url.username = value;
+        connection.url = url.toString();
+        break;
+
+      case 'password':
+        url.password = value;
+        connection.url = url.toString();
+        break;
+
+      case 'host':
+        url.hostname = value;
+        connection.url = url.toString();
+        break;
+
+      case 'port':
+        url.port = value;
+        connection.url = url.toString();
+        break;
+
+      case 'database': {
+        const pathParts = url.pathname.split('/');
+        pathParts[1] = value;
+        url.pathname = pathParts.join('/');
+        connection.url = url.toString();
+        break;
+      }
+
+      case 'schema': {
+        const searchParams = new URLSearchParams(url.search);
+        searchParams.set('schema', value);
+        url.search = searchParams.toString();
+        connection.url = url.toString();
+        break;
+      }
+
+      default:
+        throw new Error(`Unknown property: ${property}`);
+    }
+    // Update the updatedAt timestamp
+    connection.updatedAt = new Date().toISOString();
+
+    ConfigValidator.validateConnectionConfig(connection);
+    this.saveConfig();
+    logger.success(`Updated '${property}' for connection '${tag}'`);
+  }
+
   public remove(tag: string): void {
     if (!this.config) {
       throw new Error('No connections configured');

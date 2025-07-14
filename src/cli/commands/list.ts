@@ -13,7 +13,18 @@ interface ConnectionDetails {
   database: string;
   schema: string;
   ssl: string;
+  created: string;
+  updated: string;
   isDefault: boolean;
+}
+
+interface ParsedConnectionDetails {
+  username: string;
+  password: string;
+  host: string;
+  port: string;
+  database: string;
+  schema: string;
 }
 
 export async function listConnections(): Promise<void> {
@@ -45,6 +56,8 @@ export async function listConnections(): Promise<void> {
           database: details.database || '-',
           schema: details.schema || '-',
           ssl: connection.ssl ? chalk.green('✓') : chalk.red('✗'),
+          created: formatDate(connection.created),
+          updated: connection.updatedAt ? formatDate(connection.updatedAt) : '-',
           isDefault,
         };
       }
@@ -61,6 +74,8 @@ export async function listConnections(): Promise<void> {
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
       schema: Math.max(6, ...connectionDetails.map((c) => c.schema.length)),
       ssl: 3,
+      created: Math.max(7, ...connectionDetails.map((c) => c.created.length)),
+      updated: Math.max(7, ...connectionDetails.map((c) => c.updated.length)),
     };
 
     // Print header
@@ -74,10 +89,12 @@ export async function listConnections(): Promise<void> {
       'Database'.padEnd(columns.database),
       'Schema'.padEnd(columns.schema),
       'SSL',
+      'Created'.padEnd(columns.created),
+      'Updated'.padEnd(columns.updated),
     ].join(' | ');
 
     console.log(chalk.bold(header));
-    console.log(chalk.dim('-'.repeat(header.length + 10)));
+    console.log(chalk.dim('-'.repeat(header.length + 20)));
 
     // Print rows
     connectionDetails.forEach((conn) => {
@@ -91,6 +108,8 @@ export async function listConnections(): Promise<void> {
         conn.database.padEnd(columns.database),
         conn.schema.padEnd(columns.schema),
         conn.ssl,
+        conn.created.padEnd(columns.created),
+        conn.updated.padEnd(columns.updated),
       ].join(' | ');
 
       console.log(row);
@@ -103,7 +122,20 @@ export async function listConnections(): Promise<void> {
   }
 }
 
-function parseConnectionString(url: string, dbType: string): any {
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return dateString;
+  }
+}
+
+function parseConnectionString(url: string, dbType: string): ParsedConnectionDetails {
   try {
     const urlObj = new URL(url);
     const searchParams = new URLSearchParams(urlObj.search);
