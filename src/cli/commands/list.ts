@@ -28,15 +28,12 @@ interface ParsedConnectionDetails {
 interface ListOptions {
   showPasswords?: boolean;
 }
-
 export async function listConnections(options: ListOptions = {}): Promise<void> {
   try {
     const connections = configManager.list();
 
     if (connections.length === 0) {
-      logger.info(
-        'No connections configured. Use "schiba add <tag> <connection-string>" to add a connection.'
-      );
+      showListHelp();
       return;
     }
 
@@ -122,6 +119,26 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
     logger.error(`Failed to list connections: ${(error as Error).message}`);
     throw error;
   }
+}
+
+export function showListHelp(): void {
+  console.log(chalk.yellow('\nNo connections configured yet.'));
+  console.log(chalk.cyan('\nTo get started, add a connection:'));
+  console.log(chalk.cyan('  schiba add <tag> <connection-string>'));
+
+  console.log(chalk.dim('\nConnection string formats:'));
+  console.log(chalk.dim('  PostgreSQL: postgresql://user:pass@host:port/database'));
+  console.log(chalk.dim('  MongoDB:    mongodb://user:pass@host:port/database'));
+
+  console.log(chalk.dim('\nExamples:'));
+  console.log(chalk.dim('  schiba add local "postgresql://localhost:5432/mydb" --no-ssl'));
+  console.log(chalk.dim('  schiba add prod "postgresql://user:pass@host:5432/db" --default'));
+  console.log(chalk.dim('  schiba add staging "mongodb://localhost:27017/mydb"'));
+
+  console.log(chalk.dim('\nAfter adding connections, you can:'));
+  console.log(chalk.dim('  schiba list          # List all connections'));
+  console.log(chalk.dim('  schiba fetch         # Extract schema from default connection'));
+  console.log(chalk.dim('  schiba test <tag>    # Test a specific connection\n'));
 }
 
 function parseConnectionString(url: string, dbType: string): ParsedConnectionDetails {
