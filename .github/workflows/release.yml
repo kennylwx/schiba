@@ -64,7 +64,12 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
 
       - name: Configure Git
         run: |
@@ -96,6 +101,9 @@ jobs:
       - name: Commit version change
         run: |
           git add package.json
+          if [ -f "pnpm-lock.yaml" ]; then
+            git add pnpm-lock.yaml
+          fi
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
 
       - name: Create and push tag
@@ -139,7 +147,12 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ -f "pnpm-lock.yaml" ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install
+          fi
 
       - name: Build
         run: pnpm build
