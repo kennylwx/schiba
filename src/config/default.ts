@@ -22,4 +22,12 @@ export const CONFIG = {
     RAW: 'schiba-out.txt',
     MARKDOWN: 'schiba-out.md',
   },
+  // Add configuration defaults
+  CONFIG_VERSION: '1.0.0',
+  DEFAULT_SSL_MODE: 'prefer',
+  DEFAULT_PREFERENCES: {
+    format: 'raw' as const,
+    timeout: 10000,
+    copy: false,
+  },
 } as const;

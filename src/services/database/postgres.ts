@@ -1,16 +1,24 @@
 import { Client, type PostgresClient } from '../../utils/pg-client';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
+import type { ConnectionConfig } from '../../core/types';
+import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
+import chalk from 'chalk';
 
 export class PostgresConnection extends BaseConnection {
   private client: PostgresClient;
+  private connectionConfig: ConnectionConfig;
 
-  constructor(connectionString: string, options: ConnectionOptions = {}) {
-    super(connectionString, options);
+  constructor(connectionConfig: ConnectionConfig, options: ConnectionOptions = {}) {
+    super(connectionConfig.url, options);
+    this.connectionConfig = connectionConfig;
+
+    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
+
     this.client = new Client({
-      connectionString: this.connectionString,
+      connectionString: connStr,
       connectionTimeoutMillis: this.options.timeout,
-      ssl: this.options.ssl ? { rejectUnauthorized: false } : undefined,
+      ssl: buildSSLConfig(connectionConfig.sslMode),
     });
   }
 
@@ -43,8 +51,8 @@ export class PostgresConnection extends BaseConnection {
     return this.client;
   }
 
-  private formatError(error: any): Error {
-    const message = error?.message || 'Unknown error';
+  private formatError(error: unknown): Error {
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     if (message.includes('password authentication failed')) {
       return new Error('Authentication failed: Invalid username or password');
@@ -54,6 +62,18 @@ export class PostgresConnection extends BaseConnection {
       return new Error('Connection refused. Please check if the database server is running.');
     }
 
-    return error;
+    if (message.includes('server does not support SSL')) {
+      return new Error(
+        `The server does not support SSL connections.\n\n` +
+          `To fix this, disable SSL for your connection:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `Then try again:\n` +
+          `  ${chalk.cyan(`schiba fetch ${this.connectionConfig.tag}`)}\n\n` +
+          `To see all your connections:\n` +
+          `  ${chalk.cyan('schiba list')}`
+      );
+    }
+
+    return error instanceof Error ? error : new Error(message);
   }
 }

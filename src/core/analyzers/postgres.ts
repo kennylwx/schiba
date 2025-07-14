@@ -1,5 +1,7 @@
 import { Client, type PostgresClient } from '../../utils/pg-client';
-import type { SchemaStats } from '../types';
+import type { SchemaStats, ConnectionConfig } from '../types';
+import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
+import chalk from 'chalk';
 
 export interface PostgresTable {
   columns?: Array<{
@@ -23,16 +25,17 @@ export interface PostgresSchema {
 
 export class PostgresAnalyzer {
   private client: PostgresClient;
+  private connectionConfig: ConnectionConfig;
 
-  constructor(connectionString: string, timeout: number) {
-    // Add ssl=no-verify if it's not already present
-    const connStr = connectionString.includes('ssl=')
-      ? connectionString
-      : `${connectionString}${connectionString.includes('?') ? '&' : '?'}ssl=no-verify`;
+  constructor(connectionConfig: ConnectionConfig, timeout: number) {
+    this.connectionConfig = connectionConfig;
+    // Append SSL mode to connection string
+    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
 
     this.client = new Client({
       connectionString: connStr,
       connectionTimeoutMillis: timeout,
+      ssl: buildSSLConfig(connectionConfig.sslMode),
     });
   }
 
@@ -46,9 +49,38 @@ export class PostgresAnalyzer {
         schema: JSON.stringify(result, null, 0),
         stats,
       };
+    } catch (error) {
+      // Format the error with helpful messages
+      throw this.formatError(error);
     } finally {
       await this.client.end();
     }
+  }
+
+  private formatError(error: unknown): Error {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+
+    if (message.includes('server does not support SSL')) {
+      return new Error(
+        `The server does not support SSL connections.\n\n` +
+          `To fix this, disable SSL for your connection:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `Then try again:\n` +
+          `  ${chalk.cyan(`schiba fetch ${this.connectionConfig.tag}`)}\n\n` +
+          `To see all your connections:\n` +
+          `  ${chalk.cyan('schiba list')}`
+      );
+    }
+
+    if (message.includes('password authentication failed')) {
+      return new Error('Authentication failed: Invalid username or password');
+    }
+
+    if (message.includes('ECONNREFUSED')) {
+      return new Error('Connection refused. Please check if the database server is running.');
+    }
+
+    return error instanceof Error ? error : new Error(message);
   }
 
   private async extractSchema(): Promise<PostgresSchema> {

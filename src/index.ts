@@ -2,50 +2,65 @@
 
 import { program } from 'commander';
 import { CONFIG } from './config/default';
-import { extractSchema } from './cli/commands/extract';
-import { validateConnectionString } from './utils/helpers';
-import type { CLIOptions } from './cli/types';
+import { AddOptions, addConnection, showAddHelp } from './cli/commands/add';
+import { fetchSchema } from './cli/commands/fetch';
+import { listConnections } from './cli/commands/list';
+import { removeConnection } from './cli/commands/remove';
+import { setDefaultConnection } from './cli/commands/default';
+import { testConnection } from './cli/commands/test';
+import { copyConnectionString } from './cli/commands/copy';
+import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
   program
     .name('schiba')
-    .description(
-      'schiba - Extract and compact database schemas for AI context windows\n\n' +
-        'Example usage:\n' +
-        '  $ schiba "postgresql://user:password@localhost:5432/dbname"\n' +
-        '  $ schiba "mongodb://user:password@localhost:27017/dbname" --format markdown\n\n' +
-        'Supported databases:\n' +
-        Object.entries(CONFIG.SUPPORTED_DATABASES)
-          .map(([db, prefixes]) => `  - ${db} (${prefixes.join(', ')})`)
-          .join('\n') +
-        '\n\nOutput formats:\n' +
-        '  - raw (default): JSON format with AI context header\n' +
-        '  - markdown: Tables and documentation in markdown\n'
-    )
+    .description('Database schema extraction tool with connection management')
     .version(CONFIG.VERSION, '-v, --version', 'Output the current version')
-    .argument('<db-string>', 'Database connection string (must be wrapped in quotes)')
+    .configureHelp({
+      sortSubcommands: true,
+      showGlobalOptions: true,
+    });
+
+  // Add command
+
+  program
+    .command('add [tag] [connection-string]')
+    .description('Add a database connection')
+    .option('--no-ssl', 'Disable SSL connection')
+    .option('--default', 'Set as default connection')
+    .option('--description <text>', 'Add a description')
+    .action(async (tag?: string, connectionString?: string, options?: AddOptions) => {
+      try {
+        if (!tag || !connectionString) {
+          showAddHelp(tag);
+          if (!tag) {
+            throw new Error('Missing required argument: tag');
+          }
+          if (!connectionString) {
+            throw new Error('Missing required argument: connection-string');
+          }
+        }
+        await addConnection(tag, connectionString, options || {});
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Fetch command
+  program
+    .command('fetch [tag]')
+    .description('Fetch database schema (uses default if no tag provided)')
     .option('-f, --filename <name>', 'Output filename')
     .option('-d, --directory <path>', 'Output directory (default: current directory)')
-    .option(
-      '-t, --timeout <ms>',
-      'Connection timeout in milliseconds',
-      String(CONFIG.CONNECTION_TIMEOUT)
-    )
-    .option('--format <type>', 'Output format: "raw" or "markdown"', 'raw')
+    .option('-t, --timeout <ms>', 'Connection timeout in milliseconds')
+    .option('--format <type>', 'Output format: "raw" or "markdown"')
+    .option('--no-copy', 'Do not copy output to clipboard')
     .option('--verbose', 'Enable verbose logging')
-    .option('-c, --copy', 'Copy the output to clipboard')
-    .addHelpText('after', '\nNote: Connection string must be wrapped in quotes')
-    .action(async (dbString: string, options: CLIOptions) => {
+    .action(async (tag: string | undefined, options) => {
       try {
-        // Set logging level based on verbose flag
         if (options.verbose) {
           logger.setLevel(LogLevel.DEBUG);
-        }
-
-        // Validate connection string
-        if (!validateConnectionString(dbString)) {
-          throw new Error('Invalid connection string format');
         }
 
         // Validate format option
@@ -58,25 +73,134 @@ async function main(): Promise<void> {
           options.format = 'markdown';
         }
 
-        await extractSchema(dbString, {
-          filename: options.filename,
-          directory: options.directory,
-          timeout: options.timeout ? options.timeout : CONFIG.CONNECTION_TIMEOUT,
-          format: options.format as 'raw' | 'markdown',
-          copy: options.copy,
-        });
+        await fetchSchema(tag, options);
       } catch (error) {
         if (error instanceof Error) {
-          logger.error(error.message);
-          if (options.verbose) {
-            logger.error('Stack trace:', error);
-          }
+          // Display the full error message including multi-line guidance
+          console.error('\n' + error.message + '\n');
         } else {
-          logger.error('An unknown error occurred');
+          logger.error(String(error));
         }
         process.exit(1);
       }
     });
+
+  // List command
+  program
+    .command('list')
+    .description('List all connections')
+    .option('--show-passwords', 'Show passwords in plain text')
+    .action(async (options) => {
+      try {
+        await listConnections(options);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Remove command
+  program
+    .command('remove <tag>')
+    .description('Remove a connection')
+    .action(async (tag: string) => {
+      try {
+        await removeConnection(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Default command
+  program
+    .command('default <tag>')
+    .description('Set default connection')
+    .action(async (tag: string) => {
+      try {
+        await setDefaultConnection(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Test command
+  program
+    .command('test [tag]')
+    .description('Test a connection')
+    .action(async (tag: string | undefined) => {
+      try {
+        await testConnection(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Copy command
+  program
+    .command('copy <tag>')
+    .description('Copy connection string to clipboard')
+    .action(async (tag: string) => {
+      try {
+        await copyConnectionString(tag);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Update command
+  program
+    .command('update [tag] [property] [value]')
+    .description(
+      'Update connection properties (ssl, username, password, host, port, database, schema)'
+    )
+    .action(async (tag?: string, property?: string, value?: string) => {
+      try {
+        // Check if help is needed
+        if (!tag || !property || !value) {
+          showUpdateHelp(tag, property);
+          if (!tag) {
+            throw new Error('Missing required argument: tag');
+          }
+          if (!property) {
+            throw new Error('Missing required argument: property');
+          }
+          if (!value) {
+            throw new Error('Missing required argument: value');
+          }
+        }
+
+        const validProperties: UpdateProperty[] = [
+          'ssl',
+          'username',
+          'password',
+          'host',
+          'port',
+          'database',
+          'schema',
+        ];
+        if (!validProperties.includes(property as UpdateProperty)) {
+          showUpdateHelp(tag, property);
+          throw new Error(`Invalid property. Valid properties are: ${validProperties.join(', ')}`);
+        }
+        await updateConnection(tag, property as UpdateProperty, value);
+      } catch (error) {
+        if (error instanceof Error) {
+          logger.error(error.message);
+        }
+        process.exit(1);
+      }
+    });
+
+  // Add example usage after configuring all commands
+  program.addHelpText(
+    'after',
+    `
+Get Started:
+  $ schiba add local "postgresql://localhost:5432/mydb"
+  $ schiba fetch
+  $ schiba list
+  $ schiba update local ssl disable
+  $ schiba copy local`
+  );
 
   await program.parseAsync();
 }

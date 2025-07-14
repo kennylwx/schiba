@@ -36,6 +36,7 @@ coverage/
 # Project specific files
 schiba-out.txt
 repomix-output.txt
+repomix-output.xml
 
 # Temporary files
 *.tmp

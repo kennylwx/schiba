@@ -1,145 +1,260 @@
-# 🐕 Schiba
+# 🐕 Schiba (Database Schema Extractor for LLM)
 
-A specialized CLI tool for extracting and formatting database schemas, optimized for AI context windows. Schiba generates compact, token-efficient schema representations for use with Large Language Models (LLMs).
-
-## Key Features
-
-- Extract database schemas with contextual metadata and AI-optimized formatting
-- Intelligent token usage analysis for Claude, GPT-4, and GPT-3.5
-- Multiple output formats with AI context headers and schema documentation
-- Built-in security analysis for sensitive data detection
-- Automatic clipboard support for quick AI context insertion
-- Progress indicators and detailed operation statistics
+Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
 
 ## Installation
 
 ```bash
 npm install -g schiba
+
+yarn global add schiba
+
 ```
 
-For one-time use:
+## Quick Start
 
 ```bash
-npx schiba
+# 1. Add your database connection (e.g., a local PostgreSQL)
+schiba add local "postgresql://user:pass@localhost:5432/mydb" --no-ssl
+
+# 2. Fetch the schema (it will be saved to a file and copied to your clipboard)
+schiba fetch
+
+# 3. List all your saved connections in a tidy table
+schiba list
 ```
 
-## Usage
+## Commands
 
-Basic schema extraction:
+Schiba provides a comprehensive set of commands to manage your database connections and extract schemas efficiently.
+
+### `add`
+
+Adds a new database connection to the configuration.
+
+**Usage**
 
 ```bash
-# PostgreSQL
-schiba "postgresql://user:pass@localhost:5432/mydb"
-
-# MongoDB
-schiba "mongodb://user:pass@localhost:27017/mydb"
-
-# With custom format and output and copy to clipboard
-schiba "postgresql://localhost/mydb" --format markdown -f schema.md -c
+schiba add <tag> <connection-string> [options]
 ```
 
-### Command Options
+**Options**
+
+- `--no-ssl`: Disable SSL for the connection.
+- `--default`: Set this connection as the new default.
+- `--description <text>`: Add a description for the connection.
+
+**Examples**
 
 ```bash
-schiba <connection-string> [options]
+# Add a production PostgreSQL DB and set it as the default
+schiba add prod "postgresql://user:pass@host:5432/db" --default
 
-Options:
-  -f, --filename <name>     Output filename (default: schiba-out.txt/md)
-  -d, --directory <path>    Output directory (default: current directory)
-  -t, --timeout <ms>        Connection timeout (default: 10000ms)
-  --format <type>           Output format: "raw" or "markdown"
-  --verbose                 Enable detailed logging
-  -c, --copy                Copy output to clipboard
-  -v, --version             Display version
-  -h, --help                Show help
+# Add a local MongoDB connection without SSL enabled
+schiba add dev "mongodb://localhost:27017/devdb" --no-ssl
 ```
 
-### Supported Databases
+---
 
-Currently implemented:
+### `list`
 
-- PostgreSQL (`postgresql://`, `postgres://`)
-- MongoDB (`mongodb://`, `mongodb+srv://`)
+Lists all saved connections in a table format.
 
-## Output Formats
-
-### Raw Format (Default)
-
-Compact JSON with AI context header:
-
-```json
-{
-  "tables": {
-    "users": {
-      "columns": [
-        {
-          "column": "id",
-          "type": "uuid",
-          "nullable": "NO",
-          "constraints": ["PRIMARY KEY"]
-        }
-      ],
-      "indexes": [
-        {
-          "name": "users_pkey",
-          "definition": "CREATE UNIQUE INDEX users_pkey ON users USING btree (id)"
-        }
-      ]
-    }
-  },
-  "enums": {
-    "user_role": ["admin", "user", "guest"]
-  }
-}
-```
-
-### Markdown Format
-
-Documentation-style output with formatted tables:
-
-```markdown
-## Tables
-
-### users
-
-User account information
-
-#### Columns
-
-| Column | Type | Nullable | Default | Constraints |
-| ------ | ---- | -------- | ------- | ----------- |
-| id     | uuid | NO       | null    | PRIMARY KEY |
-
-#### Indexes
-
-| Name       | Definition                                               |
-| ---------- | -------------------------------------------------------- |
-| users_pkey | CREATE UNIQUE INDEX users_pkey ON users USING btree (id) |
-```
-
-## Development
+**Usage**
 
 ```bash
-# Setup
-git clone <repository>
-npm install
-
-# Development
-npm run dev
-
-# Testing
-npm test
-
-# Build
-npm run build
-
-# Lint and Format
-npm run lint
-npm run format
+schiba list [options]
 ```
+
+**Options**
+
+- `--show-passwords`: Display passwords in plain text instead of `***`.
+
+**Example**
+
+```bash
+schiba list --show-passwords
+```
+
+---
+
+### `fetch`
+
+Fetches the database schema, formats it, saves it to a file, and copies it to the clipboard.
+
+**Usage**
+
+```bash
+schiba fetch [tag] [options]
+```
+
+**Options**
+
+- `-f, --filename <name>`: Custom output filename.
+- `-d, --directory <path>`: Custom output directory.
+- `-t, --timeout <ms>`: Connection timeout in milliseconds.
+- `--format <type>`: Output format (`raw` or `markdown`).
+- `--no-copy`: Prevents copying the output to the clipboard.
+- `--verbose`: Enable detailed logging for debugging.
+
+**Examples**
+
+```bash
+# Fetch schema from the default connection
+schiba fetch
+
+# Fetch schema from a specific connection in markdown format
+schiba fetch prod --format markdown
+```
+
+---
+
+### `update`
+
+Updates a property of an existing connection.
+
+**Usage**
+
+```bash
+schiba update <tag> <property> <value>
+```
+
+**Properties**
+
+- `ssl`: `enable` or `disable`
+- `username`: The new database username.
+- `password`: The new database password.
+- `host`: The new database host.
+- `port`: The new database port.
+- `database`: The new database name.
+- `schema`: (PostgreSQL) The new schema name.
+
+**Examples**
+
+```bash
+# Disable SSL for the 'local' connection
+schiba update local ssl disable
+
+# Change the user for the 'prod' connection
+schiba update prod username new_user
+```
+
+---
+
+### `remove`
+
+Removes a saved connection.
+
+**Usage**
+
+````bash
+schiba remove <tag>```
+
+**Example**
+```bash
+schiba remove staging
+````
+
+---
+
+### `default`
+
+Sets a connection as the default for commands like `fetch` and `test`.
+
+**Usage**
+
+```bash
+schiba default <tag>
+```
+
+**Example**
+
+```bash
+schiba default prod
+```
+
+---
+
+### `test`
+
+Tests the connection to a database without fetching the full schema.
+
+**Usage**
+
+```bash
+schiba test [tag]
+```
+
+**Example**
+
+```bash
+# Test the default connection
+schiba test
+
+# Test a specific connection
+schiba test prod
+```
+
+---
+
+### `copy`
+
+Copies a connection string to the clipboard.
+
+**Usage**
+
+```bash
+schiba copy <tag>
+```
+
+**Example**
+
+```bash
+schiba copy prod
+```
+
+## Configuration
+
+Schiba stores its configuration in a `config.json` file in a centralized location on your system.
+
+- **macOS/Linux**: `~/.config/schiba/config.json`
+- **Windows**: `%APPDATA%\schiba\config.json`
+
+The configuration is automatically created when you add your first connection.
+
+### Environment Variables
+
+For sensitive data like passwords, you can use environment variables. Create a `.env` file in the same directory as your `config.json`:
+
+- **macOS/Linux**: `~/.config/schiba/.env`
+- **Windows**: `%APPDATA%\schiba\.env`
+
+**Example `.env` file:**
+
+```
+DB_USER=myuser
+DB_PASS=verysecretpassword
+```
+
+You can then reference these variables when adding a connection string. Schiba will automatically substitute them.
+
+```bash
+# Use environment variables in your connection string
+schiba add prod "postgresql://${DB_USER}:${DB_PASS}@prod-host.com/db"
+```
+
+## Supported Databases
+
+| Database             | Connection String              | Supported |
+| :------------------- | :----------------------------- | :-------: |
+| PostgreSQL           | `postgresql://`, `postgres://` |    ✅     |
+| MongoDB              | `mongodb://`, `mongodb+srv://` |    ✅     |
+| MySQL                | `mysql://`                     |    ❌     |
+| Microsoft SQL Server | `mssql://`, `sqlserver://`     |    ❌     |
+| Oracle               | `oracle://`                    |    ❌     |
 
 ## License
 
 MIT License
 
-**Note**: Schiba is designed for development and documentation purposes. Always review schema output before sharing sensitive database information.
+_Note: Schiba is a tool designed for development and documentation. Always review any schema output to ensure you are not unintentionally sharing sensitive information._

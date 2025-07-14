@@ -1,13 +1,17 @@
 import { MongoClient } from 'mongodb';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
+import type { ConnectionConfig } from '../../core/types';
+import chalk from 'chalk';
 
 export class MongoConnection extends BaseConnection {
   private client: MongoClient;
+  private connectionConfig: ConnectionConfig;
 
-  constructor(connectionString: string, options: ConnectionOptions = {}) {
-    super(connectionString, options);
-    this.client = new MongoClient(connectionString, {
+  constructor(connectionConfig: ConnectionConfig, options: ConnectionOptions = {}) {
+    super(connectionConfig.url, options);
+    this.connectionConfig = connectionConfig;
+    this.client = new MongoClient(connectionConfig.url, {
       serverSelectionTimeoutMS: this.options.timeout,
     });
   }
@@ -41,8 +45,8 @@ export class MongoConnection extends BaseConnection {
     return this.client;
   }
 
-  private formatError(error: any): Error {
-    const message = error?.message || 'Unknown error';
+  private formatError(error: unknown): Error {
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     if (message.includes('Authentication failed')) {
       return new Error('Authentication failed: Invalid credentials');
@@ -52,6 +56,19 @@ export class MongoConnection extends BaseConnection {
       return new Error('Connection timed out. Please check your network connection.');
     }
 
-    return error;
+    // Add SSL-related error handling for MongoDB
+    if (message.includes('SSL') || message.includes('TLS')) {
+      return new Error(
+        `SSL/TLS connection error.\n\n` +
+          `To fix this, try disabling SSL:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `Or enable SSL if required:\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl enable`)}\n\n` +
+          `Then test your connection:\n` +
+          `  ${chalk.cyan(`schiba test ${this.connectionConfig.tag}`)}`
+      );
+    }
+
+    return error instanceof Error ? error : new Error(message);
   }
 }

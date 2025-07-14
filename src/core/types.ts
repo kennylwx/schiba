@@ -49,3 +49,14 @@ export interface Schema {
   tables: Record<string, TableInfo>;
   enums?: Record<string, string[]>;
 }
+
+// Add connection config types
+export interface ConnectionConfig {
+  url: string;
+  ssl: boolean;
+  sslMode: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+  description?: string;
+  created: string;
+  lastUsed?: string;
+  tag: string;
+}
