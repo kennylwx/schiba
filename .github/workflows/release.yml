@@ -26,6 +26,11 @@ on:
     tags:
       - 'v*'
 
+# Prevent concurrent deployments
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   version-and-tag:
     runs-on: ubuntu-latest
@@ -119,7 +124,10 @@ jobs:
   publish-npm:
     runs-on: ubuntu-latest
     needs: version-and-tag
-    if: always() && (needs.version-and-tag.result == 'success' || github.event_name == 'push')
+    # Only run for workflow_dispatch OR if it's a tag push (but not both)
+    if: |
+      (github.event_name == 'workflow_dispatch' && needs.version-and-tag.result == 'success') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !github.event.forced)
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -162,9 +170,29 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Publish to NPM
+      - name: Check if version already published
+        id: check_version
         run: |
-          if [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"alpha"* ]] || [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"beta"* ]] || [[ "${{ needs.version-and-tag.outputs.new_version || '' }}" == *"rc"* ]]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ needs.version-and-tag.outputs.new_version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+
+          if npm view schiba@$VERSION version 2>/dev/null; then
+            echo "Version $VERSION already exists on NPM"
+            echo "already_published=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version $VERSION does not exist on NPM, proceeding with publish"
+            echo "already_published=false" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish to NPM
+        if: steps.check_version.outputs.already_published == 'false'
+        run: |
+          VERSION="${{ steps.check_version.outputs.version }}"
+          if [[ "$VERSION" == *"alpha"* ]] || [[ "$VERSION" == *"beta"* ]] || [[ "$VERSION" == *"rc"* ]]; then
             pnpm publish --tag next --no-git-checks
           else
             pnpm publish --no-git-checks
@@ -172,10 +200,20 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Skip publish (already exists)
+        if: steps.check_version.outputs.already_published == 'true'
+        run: |
+          echo "Skipping publish - version ${{ steps.check_version.outputs.version }} already exists on NPM"
+
   update-homebrew:
     needs: [version-and-tag, publish-npm]
     runs-on: ubuntu-latest
-    if: always() && needs.publish-npm.result == 'success' && !contains(needs.version-and-tag.outputs.new_version || '', 'alpha') && !contains(needs.version-and-tag.outputs.new_version || '', 'beta') && !contains(needs.version-and-tag.outputs.new_version || '', 'rc')
+    if: |
+      always() && 
+      needs.publish-npm.result == 'success' && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'alpha') && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'beta') && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'rc')
     environment: production
     steps:
       - name: Wait for NPM package
