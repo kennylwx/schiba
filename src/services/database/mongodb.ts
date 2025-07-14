@@ -42,8 +42,8 @@ export class MongoConnection extends BaseConnection {
     return this.client;
   }
 
-  private formatError(error: any): Error {
-    const message = error?.message || 'Unknown error';
+  private formatError(error: unknown): Error {
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     if (message.includes('Authentication failed')) {
       return new Error('Authentication failed: Invalid credentials');
@@ -53,6 +53,6 @@ export class MongoConnection extends BaseConnection {
       return new Error('Connection timed out. Please check your network connection.');
     }
 
-    return error;
+    return error instanceof Error ? error : new Error(message);
   }
 }

@@ -10,8 +10,9 @@ export async function copyConnectionString(tag: string): Promise<void> {
 
     await clipboardy.write(connectionConfig.url);
 
-    logger.success(`Connection string for '${tag}' copied to clipboard`);
-    console.log(chalk.dim(`\n${EMOJI_MAP.success} Connection string copied!\n`));
+    console.log(
+      chalk.green(`\n${EMOJI_MAP.success} Connection string for '${tag}' copied to clipboard!\n`)
+    );
   } catch (error) {
     logger.error(`Failed to copy connection string: ${(error as Error).message}`);
     throw error;

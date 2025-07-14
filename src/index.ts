@@ -2,14 +2,14 @@
 
 import { program } from 'commander';
 import { CONFIG } from './config/default';
-import { addConnection } from './cli/commands/add';
+import { AddOptions, addConnection, showAddHelp } from './cli/commands/add';
 import { fetchSchema } from './cli/commands/fetch';
 import { listConnections } from './cli/commands/list';
 import { removeConnection } from './cli/commands/remove';
 import { setDefaultConnection } from './cli/commands/default';
 import { testConnection } from './cli/commands/test';
 import { copyConnectionString } from './cli/commands/copy';
-import { updateConnection, UpdateProperty } from './cli/commands/update';
+import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
@@ -23,15 +23,25 @@ async function main(): Promise<void> {
     });
 
   // Add command
+
   program
-    .command('add <tag> <connection-string>')
+    .command('add [tag] [connection-string]')
     .description('Add a database connection')
     .option('--no-ssl', 'Disable SSL connection')
     .option('--default', 'Set as default connection')
     .option('--description <text>', 'Add a description')
-    .action(async (tag: string, connectionString: string, options) => {
+    .action(async (tag?: string, connectionString?: string, options?: AddOptions) => {
       try {
-        await addConnection(tag, connectionString, options);
+        if (!tag || !connectionString) {
+          showAddHelp(tag);
+          if (!tag) {
+            throw new Error('Missing required argument: tag');
+          }
+          if (!connectionString) {
+            throw new Error('Missing required argument: connection-string');
+          }
+        }
+        await addConnection(tag, connectionString, options || {});
       } catch (error) {
         process.exit(1);
       }
@@ -79,9 +89,10 @@ async function main(): Promise<void> {
   program
     .command('list')
     .description('List all connections')
-    .action(async () => {
+    .option('--show-passwords', 'Show passwords in plain text')
+    .action(async (options) => {
       try {
-        await listConnections();
+        await listConnections(options);
       } catch (error) {
         process.exit(1);
       }
@@ -137,12 +148,26 @@ async function main(): Promise<void> {
 
   // Update command
   program
-    .command('update <tag> <property> <value>')
+    .command('update [tag] [property] [value]')
     .description(
       'Update connection properties (ssl, username, password, host, port, database, schema)'
     )
-    .action(async (tag: string, property: string, value: string) => {
+    .action(async (tag?: string, property?: string, value?: string) => {
       try {
+        // Check if help is needed
+        if (!tag || !property || !value) {
+          showUpdateHelp(tag, property);
+          if (!tag) {
+            throw new Error('Missing required argument: tag');
+          }
+          if (!property) {
+            throw new Error('Missing required argument: property');
+          }
+          if (!value) {
+            throw new Error('Missing required argument: value');
+          }
+        }
+
         const validProperties: UpdateProperty[] = [
           'ssl',
           'username',
@@ -153,6 +178,7 @@ async function main(): Promise<void> {
           'schema',
         ];
         if (!validProperties.includes(property as UpdateProperty)) {
+          showUpdateHelp(tag, property);
           throw new Error(`Invalid property. Valid properties are: ${validProperties.join(', ')}`);
         }
         await updateConnection(tag, property as UpdateProperty, value);
@@ -168,7 +194,7 @@ async function main(): Promise<void> {
   program.addHelpText(
     'after',
     `
-Examples:
+Get Started:
   $ schiba add local "postgresql://localhost:5432/mydb"
   $ schiba fetch
   $ schiba list

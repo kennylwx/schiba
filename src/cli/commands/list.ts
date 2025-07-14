@@ -13,8 +13,6 @@ interface ConnectionDetails {
   database: string;
   schema: string;
   ssl: string;
-  created: string;
-  updated: string;
   isDefault: boolean;
 }
 
@@ -27,7 +25,11 @@ interface ParsedConnectionDetails {
   schema: string;
 }
 
-export async function listConnections(): Promise<void> {
+interface ListOptions {
+  showPasswords?: boolean;
+}
+
+export async function listConnections(options: ListOptions = {}): Promise<void> {
   try {
     const connections = configManager.list();
 
@@ -50,14 +52,17 @@ export async function listConnections(): Promise<void> {
           tag: isDefault ? `${tag} ${chalk.green('(default)')}` : tag,
           type: dbType,
           username: details.username || '-',
-          password: details.password ? '***' : '-',
+          password:
+            options.showPasswords && details.password
+              ? details.password
+              : details.password
+                ? '***'
+                : '-',
           host: details.host || '-',
           port: details.port || '-',
           database: details.database || '-',
           schema: details.schema || '-',
-          ssl: connection.ssl ? chalk.green('✓') : chalk.red('✗'),
-          created: formatDate(connection.created),
-          updated: connection.updatedAt ? formatDate(connection.updatedAt) : '-',
+          ssl: connection.ssl ? '✓' : '✗',
           isDefault,
         };
       }
@@ -68,14 +73,12 @@ export async function listConnections(): Promise<void> {
       tag: Math.max(3, ...connectionDetails.map((c) => stripAnsi(c.tag).length)),
       type: Math.max(4, ...connectionDetails.map((c) => c.type.length)),
       username: Math.max(8, ...connectionDetails.map((c) => c.username.length)),
-      password: 8,
+      password: Math.max(8, ...connectionDetails.map((c) => c.password.length)),
       host: Math.max(4, ...connectionDetails.map((c) => c.host.length)),
       port: Math.max(4, ...connectionDetails.map((c) => c.port.length)),
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
       schema: Math.max(6, ...connectionDetails.map((c) => c.schema.length)),
       ssl: 3,
-      created: Math.max(7, ...connectionDetails.map((c) => c.created.length)),
-      updated: Math.max(7, ...connectionDetails.map((c) => c.updated.length)),
     };
 
     // Print header
@@ -88,13 +91,11 @@ export async function listConnections(): Promise<void> {
       'Port'.padEnd(columns.port),
       'Database'.padEnd(columns.database),
       'Schema'.padEnd(columns.schema),
-      'SSL',
-      'Created'.padEnd(columns.created),
-      'Updated'.padEnd(columns.updated),
+      'SSL'.padEnd(columns.ssl),
     ].join(' | ');
 
     console.log(chalk.bold(header));
-    console.log(chalk.dim('-'.repeat(header.length + 20)));
+    console.log(chalk.dim('-'.repeat(header.length)));
 
     // Print rows
     connectionDetails.forEach((conn) => {
@@ -107,31 +108,19 @@ export async function listConnections(): Promise<void> {
         conn.port.padEnd(columns.port),
         conn.database.padEnd(columns.database),
         conn.schema.padEnd(columns.schema),
-        conn.ssl,
-        conn.created.padEnd(columns.created),
-        conn.updated.padEnd(columns.updated),
+        conn.ssl.padEnd(columns.ssl),
       ].join(' | ');
 
       console.log(row);
     });
 
+    if (!options.showPasswords) {
+      console.log(chalk.dim('\nTip: Use --show-passwords to reveal passwords'));
+    }
     console.log();
   } catch (error) {
     logger.error(`Failed to list connections: ${(error as Error).message}`);
     throw error;
-  }
-}
-
-function formatDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateString;
   }
 }
 

@@ -9,8 +9,13 @@ export function isLocalhost(connectionString: string): boolean {
   return patterns.some((pattern) => pattern.test(connectionString));
 }
 
-export function buildSSLConfig(sslMode: string): any {
-  const sslModes: Record<string, any> = {
+export function buildSSLConfig(
+  sslMode: string
+): false | { rejectUnauthorized: boolean; checkServerIdentity?: () => undefined } {
+  const sslModes: Record<
+    string,
+    false | { rejectUnauthorized: boolean; checkServerIdentity?: () => undefined }
+  > = {
     disable: false,
     allow: { rejectUnauthorized: false },
     prefer: { rejectUnauthorized: false },
