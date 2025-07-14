@@ -1,18 +1,9 @@
 {
   "version": "1.0.0",
-  "connections": {
-    "local": {
-      "url": "postgresql://fluency_local:localpassword@localhost:5432/fluency-local?schema=public",
-      "ssl": true,
-      "sslMode": "disable",
-      "created": "2025-07-14T03:29:28.412Z",
-      "lastUsed": "2025-07-14T03:31:12.245Z"
-    }
-  },
+  "connections": {},
   "preferences": {
     "format": "raw",
     "timeout": 10000,
     "copy": false
-  },
-  "default": "local"
+  }
 }

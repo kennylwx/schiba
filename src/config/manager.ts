@@ -54,7 +54,7 @@ export class ConfigManager {
   public add(
     tag: string,
     connectionString: string,
-    options: { noSsl?: boolean; default?: boolean; description?: string } = {}
+    options: { ssl?: boolean; default?: boolean; description?: string } = {}
   ): void {
     this.ensureConfig();
 
@@ -65,10 +65,13 @@ export class ConfigManager {
 
     const isFirstConnection = Object.keys(this.config!.connections).length === 0;
 
+    // Fixed: Handle ssl option correctly (Commander sets ssl to false when --no-ssl is used)
+    const sslEnabled = options.ssl !== false;
+
     const connection: ConnectionConfig = {
       url: connectionString,
-      ssl: !options.noSsl,
-      sslMode: options.noSsl ? 'disable' : 'prefer',
+      ssl: sslEnabled,
+      sslMode: sslEnabled ? 'prefer' : 'disable',
       description: options.description,
       created: new Date().toISOString(),
     };

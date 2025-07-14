@@ -2,6 +2,8 @@
 
 Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
 
+Heavily inspired by [repomix](https://www.npmjs.com/package/repomix)
+
 ## Installation
 
 ```bash
@@ -65,7 +67,7 @@ schiba test [tag] # Test a connection
 
 ## Configuration
 
-Schiba automatically creates a configuration file at .schiba/config.json in your project directory when you add your first connection.
+Schiba automatically creates a configuration file at `.schiba/config.json` in your project directory when you add your first connection.
 
 ### Environment Variables
 
@@ -92,8 +94,14 @@ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
 
 ## Supported Databases
 
-- PostgreSQL (`postgresql://`, `postgres://`)
-- MongoDB (`mongodb://`, `mongodb+srv://`)
+| Database             | Connection String              | Supported |
+| -------------------- | ------------------------------ | --------- |
+| PostgreSQL           | `postgresql://`, `postgres://` | ✅        |
+| MongoDB              | `mongodb://`, `mongodb+srv://` | ✅        |
+| MySQL                | `mysql://`                     | ❌        |
+| SQLite               | `sqlite://`                    | ❌        |
+| Redis                | `redis://`, `rediss://`        | ❌        |
+| Microsoft SQL Server | `sqlserver://`                 | ❌        |
 
 ## Output Formats
 

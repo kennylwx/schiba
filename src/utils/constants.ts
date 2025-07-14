@@ -6,7 +6,7 @@ export const EMOJI_MAP = {
   enum: '📑',
   warning: '⚠️',
   success: '✓',
-  error: '❌',
+  error: '✗',
   info: 'ℹ️',
   security: '🔒',
   stats: '📊',

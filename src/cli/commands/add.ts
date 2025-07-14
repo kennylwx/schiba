@@ -3,7 +3,7 @@ import { logger } from '../../utils/logger';
 import chalk from 'chalk';
 
 export interface AddOptions {
-  noSsl?: boolean;
+  ssl?: boolean;
   default?: boolean;
   description?: string;
 }
