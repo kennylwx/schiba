@@ -67,11 +67,19 @@ schiba test [tag] # Test a connection
 
 ## Configuration
 
-Schiba automatically creates a configuration file at `.schiba/config.json` in your project directory when you add your first connection.
+Schiba stores its configuration in a centralized location on your system:
+
+- **macOS/Linux**: `~/.config/schiba/config.json`
+- **Windows**: `%APPDATA%\schiba\config.json`
+
+The configuration is automatically created when you add your first connection.
 
 ### Environment Variables
 
-Create a `.schiba/.env` file for sensitive data:
+Create a `.env` file in the same directory as your config for sensitive data:
+
+- **macOS/Linux**: `~/.config/schiba/.env`
+- **Windows**: `%APPDATA%\schiba\.env`
 
 ```bash
 DB_USER=myuser

@@ -1,6 +1,5 @@
 import { homedir } from 'os';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { dirname, join } from 'path';
 
 export class ConfigPaths {
   private static instance: ConfigPaths;
@@ -20,28 +19,33 @@ export class ConfigPaths {
       return process.env.SCHIBA_CONFIG_PATH;
     }
 
-    // Check local project config
-    const localPath = join(process.cwd(), '.schiba', 'config.json');
-    if (existsSync(localPath)) {
-      return localPath;
-    }
-
-    // Return local path as default (will be created on first use)
-    return localPath;
+    // Always return global config path
+    return this.getGlobalConfigPath();
   }
 
   public getEnvPath(): string {
     const configPath = this.getConfigPath();
-    const configDir = configPath.substring(0, configPath.lastIndexOf('/'));
+    const configDir = configPath.substring(0, configPath.lastIndexOf(join('/', '')));
     return join(configDir, '.env');
   }
 
   public getGlobalConfigPath(): string {
     const home = homedir();
+
     if (process.platform === 'win32') {
-      return join(home, 'AppData', 'Roaming', 'schiba', 'config.json');
+      // Windows: %APPDATA%\schiba\config.json
+      const appData = process.env.APPDATA || join(home, 'AppData', 'Roaming');
+      return join(appData, 'schiba', 'config.json');
+    } else {
+      // macOS/Linux: ~/.config/schiba/config.json
+      const configHome = process.env.XDG_CONFIG_HOME || join(home, '.config');
+      return join(configHome, 'schiba', 'config.json');
     }
-    return join(home, '.config', 'schiba', 'config.json');
+  }
+
+  public getConfigDirectory(): string {
+    const configPath = this.getConfigPath();
+    return dirname(configPath);
   }
 }
 

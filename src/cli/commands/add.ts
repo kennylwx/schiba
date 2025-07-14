@@ -18,7 +18,7 @@ export async function addConnection(
 
     // Show helpful next steps
     if (configManager.list().length === 1) {
-      console.log(chalk.dim('\nNext step: Run "schiba fetch" to extract the schema'));
+      console.log(chalk.dim('\nTip: Run "schiba fetch" to extract the schema'));
     }
   } catch (error) {
     logger.error(`Failed to add connection: ${(error as Error).message}`);

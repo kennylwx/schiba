@@ -26,7 +26,7 @@ export class ConfigStorage {
     try {
       const dir = dirname(this.configPath);
       if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+        mkdirSync(dir, { recursive: true, mode: 0o700 });
       }
 
       writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
@@ -38,7 +38,7 @@ export class ConfigStorage {
   public ensureDirectory(): void {
     const dir = dirname(this.configPath);
     if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
   }
 }
