@@ -57,3 +57,6 @@ debug.log
 
 repomix-output.xml
 repomix-output.txt
+
+.schiba/config.json
+.schiba/

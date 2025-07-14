@@ -62,7 +62,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
           port: details.port || '-',
           database: details.database || '-',
           schema: details.schema || '-',
-          ssl: connection.ssl ? '✓' : '✗',
+          ssl: connection.ssl ? chalk.green('✓') : chalk.red('✗'),
           isDefault,
         };
       }
