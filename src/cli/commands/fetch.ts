@@ -10,6 +10,7 @@ import { EMOJI_MAP } from '../../utils/constants';
 import { TokenCounterImpl } from '../../services/tokenizer/implementations';
 import { configManager } from '../../config/manager';
 import { SchemaStats } from '@/core/types';
+import { formatDuration } from '../../utils/helpers';
 
 export interface FetchOptions {
   filename?: string;
@@ -21,6 +22,7 @@ export interface FetchOptions {
 }
 
 export async function fetchSchema(tag: string | undefined, options: FetchOptions): Promise<void> {
+  const startTime = process.hrtime();
   const spinner = ora('Connecting to database...').start();
 
   try {
@@ -63,9 +65,12 @@ export async function fetchSchema(tag: string | undefined, options: FetchOptions
 
     spinner.stop();
 
+    const elapsed = process.hrtime(startTime);
+    const durationInSeconds = elapsed[0] + elapsed[1] / 1e9;
+
     printSummary(dbType, stats, outputPath, {
       format,
-      duration: process.hrtime()[0],
+      duration: durationInSeconds,
       copiedToClipboard: shouldCopy,
       connectionTag: connectionConfig.tag,
     });
@@ -111,12 +116,12 @@ function printSummary(
     console.log(chalk.dim(`\n🐕 Schiba v${CONFIG.VERSION}\n`));
     console.log(chalk.dim('Visit https://github.com/kennylwx/schiba for more details.\n'));
 
-    console.log(chalk.white('Schema exported to ') + chalk.white(outputPath) + '\n');
+    console.log(chalk.white('Schema extracted to ') + chalk.white(outputPath) + '\n');
 
     // Line 1: Connection info
     console.log(
       chalk.dim('1.  ') +
-        chalk.bold.dim('Connection: ') +
+        chalk.dim('Connection: ') +
         chalk.dim('Tag: ') +
         chalk.dim(meta.connectionTag) +
         chalk.dim(' | ') +
@@ -124,7 +129,7 @@ function printSummary(
         chalk.dim(dbType) +
         chalk.dim(' | ') +
         chalk.dim('Duration: ') +
-        chalk.dim(`${meta.duration}s`) +
+        chalk.dim(formatDuration(meta.duration)) +
         chalk.dim(' | ') +
         chalk.dim('Size: ') +
         chalk.dim(`${(stats.totalSize / 1024).toFixed(2)}KB`)
@@ -133,7 +138,8 @@ function printSummary(
     // Line 2: Breakdown
     console.log(
       chalk.dim('2.  ') +
-        chalk.bold.dim(`Tables: `) +
+        chalk.dim('Database: ') +
+        chalk.dim(`Tables: `) +
         chalk.dim(`${stats.details.tables || 0}`) +
         chalk.dim(` | `) +
         chalk.dim(`Columns: `) +
@@ -149,18 +155,17 @@ function printSummary(
     // Line 3: Token usage
     console.log(
       chalk.dim('3.  ') +
-        chalk.bold.dim('Claude: ') +
+        chalk.dim('Token: ') +
+        chalk.dim('Claude: ') +
         chalk.dim(`${tokenEstimates.claude.toLocaleString()} tokens`) +
         chalk.dim(' | ') +
-        chalk.bold.dim('GPT-4: ') +
+        chalk.dim('GPT-4: ') +
         chalk.dim(`${tokenEstimates.gpt4.toLocaleString()} tokens`)
     );
 
-    const successMessage = meta.copiedToClipboard
-      ? 'Schema extracted and copied to clipboard!'
-      : 'Schema extracted successfully!';
+    const successMessage = meta.copiedToClipboard ? 'Schema copied to clipboard!' : '';
 
-    console.log(chalk.green(`\n${EMOJI_MAP.success} ${chalk.green(successMessage)}\n`));
+    console.log(chalk.green(`\n${EMOJI_MAP.success} ${chalk.greenBright(successMessage)}\n`));
   } catch (error) {
     console.log(chalk.green(`\n${EMOJI_MAP.success} Schema extracted successfully`));
   }
