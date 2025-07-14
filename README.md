@@ -147,13 +147,15 @@ Removes a saved connection.
 
 **Usage**
 
-````bash
-schiba remove <tag>```
+```bash
+schiba remove <tag>
+```
 
 **Example**
+
 ```bash
 schiba remove staging
-````
+```
 
 ---
 
