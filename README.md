@@ -10,7 +10,7 @@ npm install -g schiba
 yarn global add schiba
 
 # macOS
-brew install schiba
+brew install kennylwx/tap/schiba
 
 # Windows (Chocolatey)
 choco install schiba
