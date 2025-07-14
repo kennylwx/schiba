@@ -9,6 +9,8 @@ npm install -g schiba
 
 yarn global add schiba
 
+# macOS Installation
+brew install schiba
 ```
 
 ## Quick Start
