@@ -101,7 +101,8 @@ jobs:
       - name: Commit version change
         run: |
           git add package.json
-          if [ -f "pnpm-lock.yaml" ]; then
+          # Only add pnpm-lock.yaml if it exists and is not ignored
+          if [ -f "pnpm-lock.yaml" ] && ! git check-ignore pnpm-lock.yaml > /dev/null 2>&1; then
             git add pnpm-lock.yaml
           fi
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
