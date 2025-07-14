@@ -9,8 +9,11 @@ npm install -g schiba
 
 yarn global add schiba
 
-# macOS Installation
+# macOS
 brew install schiba
+
+# Windows (Chocolatey)
+choco install schiba
 ```
 
 ## Quick Start

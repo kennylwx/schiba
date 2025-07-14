@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>schiba</id>
+    <version>0.2.0</version>
+    <packageSourceUrl>https://github.com/kennylwx/schiba</packageSourceUrl>
+    <owners>Kenny Lee</owners>
+    <title>Schiba</title>
+    <authors>Kenny Lee</authors>
+    <projectUrl>https://github.com/kennylwx/schiba</projectUrl>
+    <description>Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.</description>
+    <summary>Extract database schemas in a compact format for AI chat context</summary>
+    <tags>database schema cli postgresql mongodb ai context</tags>
+    <licenseUrl>https://github.com/kennylwx/schiba/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <dependencies>
+      <dependency id="nodejs" version="16.0.0" />
+    </dependencies>
+  </metadata>
+</package>

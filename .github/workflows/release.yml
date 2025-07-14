@@ -103,9 +103,13 @@ jobs:
           echo "New version: ${NEW_VERSION}"
           echo "New tag: ${NEW_TAG}"
 
+      - name: Update chocolatey nuspec version
+        run: |
+          sed -i "s/<version>.*<\/version>/<version>${{ steps.version.outputs.new_version }}<\/version>/" chocolatey/schiba.nuspec
+
       - name: Commit version change
         run: |
-          git add package.json
+          git add package.json chocolatey/schiba.nuspec
           # Only add pnpm-lock.yaml if it exists and is not ignored
           if [ -f "pnpm-lock.yaml" ] && ! git check-ignore pnpm-lock.yaml > /dev/null 2>&1; then
             git add pnpm-lock.yaml
@@ -259,3 +263,41 @@ jobs:
           git add Formula/schiba.rb
           git commit -m "schiba ${{ steps.get_version.outputs.VERSION }}"
           git push
+
+  publish-chocolatey:
+    needs: [version-and-tag, publish-npm]
+    runs-on: windows-latest
+    if: |
+      always() && 
+      needs.publish-npm.result == 'success' && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'alpha') && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'beta') && 
+      !contains(needs.version-and-tag.outputs.new_version || '', 'rc')
+    environment: production
+    steps:
+      - name: Wait for NPM package
+        run: Start-Sleep -Seconds 60 # Wait for NPM to fully propagate
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version-and-tag.outputs.new_tag || github.ref }}
+
+      - name: Get version
+        id: get_version
+        run: |
+          echo "VERSION=${{ needs.version-and-tag.outputs.new_version }}" >> $env:GITHUB_OUTPUT
+
+      - name: Update chocolatey nuspec version
+        run: |
+          (Get-Content chocolatey/schiba.nuspec) -replace '<version>.*</version>', '<version>${{ steps.get_version.outputs.VERSION }}</version>' | Set-Content chocolatey/schiba.nuspec
+
+      - name: Pack chocolatey package
+        run: |
+          cd chocolatey
+          choco pack
+
+      - name: Push to Chocolatey
+        run: |
+          cd chocolatey
+          choco push schiba.${{ steps.get_version.outputs.VERSION }}.nupkg --source https://push.chocolatey.org/ --api-key ${{ secrets.CHOCOLATEY_API_KEY }}
+        continue-on-error: true # Don't fail the whole workflow if Chocolatey push fails
