@@ -2,7 +2,7 @@
 
 import { program } from 'commander';
 import { CONFIG } from './config/default';
-import { AddOptions, addConnection, showAddHelp } from './cli/commands/add';
+import { AddOptions, addConnection } from './cli/commands/add';
 import { fetchSchema } from './cli/commands/fetch';
 import { listConnections } from './cli/commands/list';
 import { removeConnection } from './cli/commands/remove';
@@ -26,21 +26,12 @@ async function main(): Promise<void> {
   // Add command
   program
     .command('add [tag] [connection-string]')
-    .description('Add a database connection')
+    .description('Add a database connection (interactive mode if no arguments)')
     .option('--no-ssl', 'Disable SSL (sets ssl-mode to "disable")')
     .option('--default', 'Set as default connection')
     .option('--description <text>', 'Add a description')
     .action(async (tag?: string, connectionString?: string, options?: AddOptions) => {
       try {
-        if (!tag || !connectionString) {
-          showAddHelp(tag);
-          if (!tag) {
-            throw new Error('Missing required argument: tag');
-          }
-          if (!connectionString) {
-            throw new Error('Missing required argument: connection-string');
-          }
-        }
         await addConnection(tag, connectionString, options || {});
       } catch (error) {
         process.exit(1);
