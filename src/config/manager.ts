@@ -113,6 +113,16 @@ export class ConfigManager {
         }
         break;
 
+      case 'ssl-mode': {
+        const validSSLModes = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'];
+        if (!validSSLModes.includes(value)) {
+          throw new Error(`Invalid SSL mode. Use one of: ${validSSLModes.join(', ')}`);
+        }
+        connection.sslMode = value as ConnectionConfig['sslMode'];
+        connection.ssl = value !== 'disable';
+        break;
+      }
+
       case 'username':
         url.username = value;
         connection.url = url.toString();

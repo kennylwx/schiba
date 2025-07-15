@@ -54,6 +54,32 @@ export class PostgresConnection extends BaseConnection {
   private formatError(error: unknown): Error {
     const message = error instanceof Error ? error.message : 'Unknown error';
 
+    if (message.includes("does not match certificate's altnames")) {
+      return new Error(
+        `SSL hostname verification failed.\n` +
+          `The host you are connecting to (e.g., 'localhost') does not match the name in the server's SSL certificate.\n` +
+          `This is a common issue when using an SSH tunnel or a proxy.\n\n` +
+          chalk.yellow(
+            'To fix this, change the SSL mode to `verify-ca` to skip hostname verification:'
+          ) +
+          '\n' +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl-mode verify-ca`)}\n`
+      );
+    }
+
+    if (message.includes('ECONNREFUSED')) {
+      const url = new URL(this.connectionConfig.url);
+      return new Error(
+        `Connection Refused: Could not connect to ${chalk.cyan(`${url.hostname}:${url.port}`)}.\n\n` +
+          chalk.yellow('Please check the following:') +
+          '\n' +
+          `  1. The database server is running and accessible.\n` +
+          `  2. The host and port in your connection details are correct.\n` +
+          `  3. Firewalls or network security groups are not blocking the connection.\n\n` +
+          `You can update connection details using ${chalk.cyan('schiba update ...')}`
+      );
+    }
+
     if (message.includes('password authentication failed')) {
       return new Error('Authentication failed: Invalid username or password');
     }

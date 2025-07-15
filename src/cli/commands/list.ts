@@ -13,6 +13,7 @@ interface ConnectionDetails {
   database: string;
   schema: string;
   ssl: string;
+  sslMode: string;
   isDefault: boolean;
 }
 
@@ -60,6 +61,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
           database: details.database || '-',
           schema: details.schema || '-',
           ssl: connection.ssl ? chalk.green('✓') : chalk.red('✗'),
+          sslMode: connection.sslMode,
           isDefault,
         };
       }
@@ -76,6 +78,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
       schema: Math.max(6, ...connectionDetails.map((c) => c.schema.length)),
       ssl: 3,
+      sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)), // "SSL Mode"
     };
 
     // Print header
@@ -89,6 +92,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       'Database'.padEnd(columns.database),
       'Schema'.padEnd(columns.schema),
       'SSL'.padEnd(columns.ssl),
+      'SSL Mode'.padEnd(columns.sslMode),
     ].join(' | ');
 
     console.log(chalk.bold(header));
@@ -106,6 +110,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
         conn.database.padEnd(columns.database),
         conn.schema.padEnd(columns.schema),
         conn.ssl.padEnd(columns.ssl),
+        conn.sslMode.padEnd(columns.sslMode),
       ].join(' | ');
 
       console.log(row);
