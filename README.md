@@ -5,14 +5,16 @@ Database schema extraction tool with built-in connection management. Schiba gene
 ## Installation
 
 ```bash
+# Using NPM (recommended)
 npm install -g schiba
 
+# Using Yarn
 yarn global add schiba
 
-# macOS
+# On macOS with Homebrew
 brew install kennylwx/tap/schiba
 
-# Windows (Chocolatey)
+# On Windows with Chocolatey
 choco install schiba
 ```
 
@@ -20,9 +22,10 @@ choco install schiba
 
 ```bash
 # 1. Add your database connection (e.g., a local PostgreSQL)
+# The --no-ssl flag sets the ssl-mode to 'disable'.
 schiba add local "postgresql://user:pass@localhost:5432/mydb" --no-ssl
 
-# 2. Fetch the schema (it will be saved to a file and copied to your clipboard)
+# 2. Fetch the schema (it's saved to a file and copied to your clipboard)
 schiba fetch
 
 # 3. List all your saved connections in a tidy table
@@ -45,9 +48,9 @@ schiba add <tag> <connection-string> [options]
 
 **Options**
 
-- `--no-ssl`: Disable SSL for the connection.
-- `--default`: Set this connection as the new default.
-- `--description <text>`: Add a description for the connection.
+- `--no-ssl`: Disables SSL for the connection by setting its `ssl-mode` to `disable`.
+- `--default`: Sets this connection as the new default.
+- `--description <text>`: Adds a description for the connection.
 
 **Examples**
 
@@ -73,7 +76,7 @@ schiba list [options]
 
 **Options**
 
-- `--show-passwords`: Display passwords in plain text instead of `***`.
+- `--show-passwords`: Displays passwords in plain text instead of `***`.
 
 **Example**
 
@@ -100,7 +103,7 @@ schiba fetch [tag] [options]
 - `-t, --timeout <ms>`: Connection timeout in milliseconds.
 - `--format <type>`: Output format (`raw` or `markdown`).
 - `--no-copy`: Prevents copying the output to the clipboard.
-- `--verbose`: Enable detailed logging for debugging.
+- `--verbose`: Enables detailed logging for debugging.
 
 **Examples**
 
@@ -126,7 +129,7 @@ schiba update <tag> <property> <value>
 
 **Properties**
 
-- `ssl`: `enable` or `disable`
+- `ssl-mode`: Sets the SSL mode (`disable`, `require`, `verify-ca`, `verify-full`, etc.).
 - `username`: The new database username.
 - `password`: The new database password.
 - `host`: The new database host.
@@ -138,7 +141,10 @@ schiba update <tag> <property> <value>
 
 ```bash
 # Disable SSL for the 'local' connection
-schiba update local ssl disable
+schiba update local ssl-mode disable
+
+# Require full SSL verification for the 'prod' connection
+schiba update prod ssl-mode verify-full
 
 # Change the user for the 'prod' connection
 schiba update prod username new_user
