@@ -82,6 +82,13 @@ function stripAnsi(str: string): string {
   return str.replace(/\u001b\[[0-9;]*m/g, '');
 }
 
+function truncateWithEllipsis(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.slice(0, maxLength - 3) + '...';
+}
+
 export function showConfigLocation(): void {
   const configPath = configPaths.getConfigPath();
   console.log(chalk.dim(`Configuration loaded from ${configPath}\n`));
@@ -97,6 +104,8 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
     }
 
     showConfigLocation();
+
+    const MAX_HOST_LENGTH = 18; // Define maximum host column width
 
     const connectionDetails = connections.map(({ tag, connection, isDefault }) => {
       const dbType = configManager.detectDatabaseType(connection) || 'Unknown';
@@ -124,7 +133,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       password: options.showPasswords
         ? Math.max(8, ...connectionDetails.map((c) => c.password.length))
         : 0,
-      host: Math.max(4, ...connectionDetails.map((c) => c.host.length)),
+      host: Math.min(MAX_HOST_LENGTH, Math.max(4, ...connectionDetails.map((c) => c.host.length))),
       port: Math.max(4, ...connectionDetails.map((c) => c.port.length)),
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
       schemas: Math.max(7, ...connectionDetails.map((c) => c.schemas.length)),
@@ -157,6 +166,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
     // Print rows
     connectionDetails.forEach((conn) => {
       const tagPadding = columns.tag + (conn.tag.length - stripAnsi(conn.tag).length);
+      const truncatedHost = truncateWithEllipsis(conn.host, MAX_HOST_LENGTH);
 
       const rowItems = [
         conn.tag.padEnd(tagPadding),
@@ -169,7 +179,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       }
 
       rowItems.push(
-        conn.host.padEnd(columns.host),
+        truncatedHost.padEnd(columns.host),
         conn.port.padEnd(columns.port),
         conn.database.padEnd(columns.database),
         conn.schemas.padEnd(columns.schemas),
