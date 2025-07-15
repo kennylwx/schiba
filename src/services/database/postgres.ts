@@ -52,6 +52,18 @@ export class PostgresConnection extends BaseConnection {
   private formatError(error: unknown): Error {
     const message = error instanceof Error ? error.message : 'Unknown error';
 
+    // FIX: Add a specific check for the RDS Proxy TLS error.
+    if (message.includes('This RDS Proxy requires TLS connections')) {
+      return new Error(
+        `The database requires a secure SSL/TLS connection, but the current setting is likely 'disable'.\n\n` +
+          chalk.yellow('To fix this, enable SSL by changing the SSL mode:') +
+          '\n' +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl-mode require`)}\n\n` +
+          `Then, try testing the connection again:\n` +
+          `  ${chalk.cyan(`schiba test ${this.connectionConfig.tag}`)}`
+      );
+    }
+
     if (message.includes("does not match certificate's altnames")) {
       return new Error(
         `SSL hostname verification failed.\n` +
@@ -80,10 +92,6 @@ export class PostgresConnection extends BaseConnection {
 
     if (message.includes('password authentication failed')) {
       return new Error('Authentication failed: Invalid username or password');
-    }
-
-    if (message.includes('ECONNREFUSED')) {
-      return new Error('Connection refused. Please check if the database server is running.');
     }
 
     if (message.includes('server does not support SSL')) {

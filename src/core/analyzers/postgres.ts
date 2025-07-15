@@ -58,6 +58,16 @@ export class PostgresAnalyzer {
   private formatError(error: unknown): Error {
     const message = error instanceof Error ? error.message : 'Unknown error';
 
+    if (message.includes('This RDS Proxy requires TLS connections')) {
+      return new Error(
+        `The database requires a secure SSL/TLS connection, but the current setting is likely 'disable'.\n\n` +
+          chalk.yellow('To fix this, enable SSL by changing the SSL mode:') +
+          '\n' +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl-mode require`)}\n\n` +
+          `Then, try the command again.`
+      );
+    }
+
     if (message.includes("does not match certificate's altnames")) {
       return new Error(
         `SSL hostname verification failed.\n` +
@@ -88,7 +98,7 @@ export class PostgresAnalyzer {
       return new Error(
         `The server does not support SSL connections.\n\n` +
           `To fix this, disable SSL for your connection:\n` +
-          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl disable`)}\n\n` +
+          `  ${chalk.cyan(`schiba update ${this.connectionConfig.tag} ssl-mode disable`)}\n\n` +
           `Then try again:\n` +
           `  ${chalk.cyan(`schiba fetch ${this.connectionConfig.tag}`)}\n\n` +
           `To see all your connections:\n` +
@@ -98,10 +108,6 @@ export class PostgresAnalyzer {
 
     if (message.includes('password authentication failed')) {
       return new Error('Authentication failed: Invalid username or password');
-    }
-
-    if (message.includes('ECONNREFUSED')) {
-      return new Error('Connection refused. Please check if the database server is running.');
     }
 
     return error instanceof Error ? error : new Error(message);
