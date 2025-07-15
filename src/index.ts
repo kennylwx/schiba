@@ -2,7 +2,7 @@
 
 import { program } from 'commander';
 import { CONFIG } from './config/default';
-import { AddOptions, addConnection, showAddHelp } from './cli/commands/add';
+import { AddOptions, addConnection } from './cli/commands/add';
 import { fetchSchema } from './cli/commands/fetch';
 import { listConnections } from './cli/commands/list';
 import { removeConnection } from './cli/commands/remove';
@@ -10,6 +10,7 @@ import { setDefaultConnection } from './cli/commands/default';
 import { testConnection } from './cli/commands/test';
 import { copyConnectionString } from './cli/commands/copy';
 import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
+import { selectSchemas, listConnectionSchemas, showSchemasHelp } from './cli/commands/schemas';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
@@ -25,23 +26,39 @@ async function main(): Promise<void> {
   // Add command
   program
     .command('add [tag] [connection-string]')
-    .description('Add a database connection')
+    .description('Add a database connection (interactive mode if no arguments)')
     .option('--no-ssl', 'Disable SSL (sets ssl-mode to "disable")')
     .option('--default', 'Set as default connection')
     .option('--description <text>', 'Add a description')
     .action(async (tag?: string, connectionString?: string, options?: AddOptions) => {
       try {
-        if (!tag || !connectionString) {
-          showAddHelp(tag);
-          if (!tag) {
-            throw new Error('Missing required argument: tag');
-          }
-          if (!connectionString) {
-            throw new Error('Missing required argument: connection-string');
-          }
-        }
         await addConnection(tag, connectionString, options || {});
       } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Schemas command
+  program
+    .command('schemas [tag]')
+    .description('Manage schemas for a database connection')
+    .option('--list', 'List current schemas for the connection')
+    .action(async (tag?: string, options?: { list?: boolean }) => {
+      try {
+        if (!tag) {
+          showSchemasHelp();
+          throw new Error('Missing required argument: tag');
+        }
+
+        if (options?.list) {
+          await listConnectionSchemas(tag);
+        } else {
+          await selectSchemas(tag);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('\n' + error.message + '\n');
+        }
         process.exit(1);
       }
     });
@@ -155,7 +172,7 @@ async function main(): Promise<void> {
         }
 
         const validProperties: UpdateProperty[] = [
-          'ssl-mode', // 'ssl' is no longer a valid property
+          'ssl-mode',
           'username',
           'password',
           'host',
@@ -182,10 +199,20 @@ async function main(): Promise<void> {
     `
 Get Started:
   $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
+  $ schiba schemas local
   $ schiba fetch
   $ schiba list
-  $ schiba update local ssl-mode disable
-  $ schiba copy local`
+
+Common Workflows:
+  $ schiba schemas prod              # Select schemas interactively
+  $ schiba schemas prod --list       # Show current schema selection
+  $ schiba fetch prod --format md    # Extract to markdown format
+  $ schiba update prod ssl-mode require  # Update connection settings
+  
+Multi-Schema Support:
+  - Use 'schiba schemas <tag>' for interactive schema selection
+  - Extract from multiple PostgreSQL schemas simultaneously
+  - View selected schemas in 'schiba list' output`
   );
 
   await program.parseAsync();

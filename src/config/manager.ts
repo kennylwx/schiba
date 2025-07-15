@@ -247,6 +247,24 @@ export class ConfigManager {
   public detectDatabaseType(connectionConfig: ConnectionConfig): string | null {
     return detectDatabaseType(connectionConfig.url);
   }
+
+  public updateSchemas(tag: string, schemas: string[]): void {
+    if (!this.config) {
+      throw new Error('No connections configured');
+    }
+
+    if (!this.config.connections[tag]) {
+      throw new Error(`Connection '${tag}' not found`);
+    }
+
+    const connection = this.config.connections[tag];
+    connection.schemas = schemas;
+    connection.updatedAt = new Date().toISOString();
+
+    ConfigValidator.validateConnectionConfig(connection);
+    this.saveConfig();
+    logger.success(`Updated schemas for connection '${tag}': ${schemas.join(', ')}`);
+  }
 }
 
 export const configManager = ConfigManager.getInstance();

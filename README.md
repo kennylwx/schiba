@@ -1,6 +1,6 @@
-# 🐕 Schiba (Database Schema Extractor for LLM)
+# 🐕 Schiba - Database Schema Extractor for AI Context Windows
 
-Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
+A streamlined database schema extraction tool designed specifically for AI language model context windows. Schiba connects to your databases and generates compact, token-efficient schema representations perfect for use with Claude, ChatGPT, Gemini, and other LLMs.
 
 ## Installation
 
@@ -21,14 +21,16 @@ choco install schiba
 ## Quick Start
 
 ```bash
-# 1. Add your database connection (e.g., a local PostgreSQL)
-# The --no-ssl flag sets the ssl-mode to 'disable'.
-schiba add local "postgresql://user:pass@localhost:5432/mydb" --no-ssl
+# 1. Add your database connection using interactive mode (recommended)
+schiba add
 
-# 2. Fetch the schema (it's saved to a file and copied to your clipboard)
+# 2. Configure which schemas to extract (PostgreSQL only)
+schiba schemas local
+
+# 3. Fetch the schema (it's saved to a file and copied to your clipboard)
 schiba fetch
 
-# 3. List all your saved connections in a tidy table
+# 4. List all your saved connections in a tidy table
 schiba list
 ```
 
@@ -38,15 +40,34 @@ Schiba provides a comprehensive set of commands to manage your database connecti
 
 ### `add`
 
-Adds a new database connection to the configuration.
+Adds a new database connection to the configuration. **Interactive mode is recommended** for ease of use.
 
 **Usage**
 
 ```bash
+# Interactive mode (recommended) - step-by-step setup
+schiba add
+
+# Direct mode - provide all details upfront
 schiba add <tag> <connection-string> [options]
 ```
 
-**Options**
+**Interactive Mode Features**
+
+When you run `schiba add` without arguments, you'll get a guided setup that asks for:
+
+- **Database type**: PostgreSQL or MongoDB
+- **Connection tag**: A friendly name for your connection (e.g., "local", "prod")
+- **Host and port**: Database server details
+- **Database name**: The specific database to connect to
+- **Credentials**: Username and password (password is hidden as you type)
+- **Schema**: For PostgreSQL, defaults to "public"
+- **SSL configuration**: Choose appropriate security level
+- **Description**: Optional description for the connection
+- **Default setting**: Whether to set as your default connection
+- **Connection test**: Option to test the connection immediately
+
+**Direct Mode Options**
 
 - `--no-ssl`: Disables SSL for the connection by setting its `ssl-mode` to `disable`.
 - `--default`: Sets this connection as the new default.
@@ -55,18 +76,56 @@ schiba add <tag> <connection-string> [options]
 **Examples**
 
 ```bash
-# Add a production PostgreSQL DB and set it as the default
+# Interactive setup (recommended for beginners)
+schiba add
+
+# Quick setup for experienced users
 schiba add prod "postgresql://user:pass@host:5432/db" --default
 
-# Add a local MongoDB connection without SSL enabled
+# Local development setup
 schiba add dev "mongodb://localhost:27017/devdb" --no-ssl
 ```
 
 ---
 
+### `schemas`
+
+Manage schemas for a database connection with an interactive multi-select interface.
+
+**Usage**
+
+```bash
+schiba schemas <tag> [options]
+```
+
+**Options**
+
+- `--list`: List current schemas for the connection.
+
+**Examples**
+
+```bash
+# Interactive schema selection (shows checkbox interface)
+schiba schemas prod
+
+# List currently selected schemas
+schiba schemas prod --list
+```
+
+**Interactive Interface**
+The schemas command provides a modern checkbox interface where you can:
+
+- Use ↑/↓ arrow keys to navigate
+- Press space to select/deselect schemas
+- Press 'a' to toggle all schemas
+- Press 'i' to invert selection
+- Press enter to confirm your selection
+
+---
+
 ### `list`
 
-Lists all saved connections in a table format.
+Lists all saved connections in a table format, showing selected schemas for each connection.
 
 **Usage**
 
@@ -88,7 +147,7 @@ schiba list --show-passwords
 
 ### `fetch`
 
-Fetches the database schema, formats it, saves it to a file, and copies it to the clipboard.
+Fetches the database schema from all selected schemas, formats it, saves it to a file, and copies it to the clipboard.
 
 **Usage**
 
@@ -108,7 +167,7 @@ schiba fetch [tag] [options]
 **Examples**
 
 ```bash
-# Fetch schema from the default connection
+# Fetch schema from the default connection (all selected schemas)
 schiba fetch
 
 # Fetch schema from a specific connection in markdown format
@@ -226,6 +285,37 @@ schiba copy <tag>
 schiba copy prod
 ```
 
+## Multi-Schema Support
+
+Schiba supports extracting from multiple database schemas simultaneously. This is particularly useful for PostgreSQL databases with multiple schemas.
+
+### How it works:
+
+1. **Add a connection**: `schiba add` (use interactive mode)
+2. **Select schemas interactively**: `schiba schemas local`
+3. **Extract all selected schemas**: `schiba fetch local`
+
+### Schema Selection Interface:
+
+```
+📋 Schema Selection for 'local'
+
+Currently selected: public, orders
+
+Instructions:
+  ↑/↓ to navigate, space to select/deselect, enter to confirm
+  a to toggle all, i to invert selection
+
+? Select schemas to extract: (Press <space> to select, <a> to toggle all, <i> to invert selection, and <enter> to proceed)
+❯◉ public
+ ◯ orders
+ ◉ analytics
+ ◯ reporting
+ ◯ temp_data
+```
+
+The extracted schema will include tables, columns, indexes, and enums from all selected schemas, organized by schema name.
+
 ## Configuration
 
 Schiba stores its configuration in a `config.json` file in a centralized location on your system.
@@ -252,19 +342,43 @@ DB_PASS=verysecretpassword
 You can then reference these variables when adding a connection string. Schiba will automatically substitute them.
 
 ```bash
-# Use environment variables in your connection string
+# Use environment variables in your connection string (direct mode)
 schiba add prod "postgresql://${DB_USER}:${DB_PASS}@prod-host.com/db"
+```
+
+## Interactive Mode vs Direct Mode
+
+### Interactive Mode (Recommended)
+
+- **User-friendly**: Step-by-step guided setup
+- **Error prevention**: Input validation at each step
+- **SSL guidance**: Helps choose appropriate security settings
+- **Connection testing**: Built-in connection verification
+- **Beginner-friendly**: No need to remember connection string formats
+
+```bash
+schiba add  # Starts interactive mode
+```
+
+### Direct Mode (For Power Users)
+
+- **Fast setup**: One command for experienced users
+- **Scriptable**: Can be used in automation scripts
+- **Flexible**: Support for environment variables
+
+```bash
+schiba add local "postgresql://user:pass@localhost:5432/mydb" --no-ssl
 ```
 
 ## Supported Databases
 
-| Database             | Connection String              | Supported |
-| :------------------- | :----------------------------- | :-------: |
-| PostgreSQL           | `postgresql://`, `postgres://` |    ✅     |
-| MongoDB              | `mongodb://`, `mongodb+srv://` |    ✅     |
-| MySQL                | `mysql://`                     |    ❌     |
-| Microsoft SQL Server | `mssql://`, `sqlserver://`     |    ❌     |
-| Oracle               | `oracle://`                    |    ❌     |
+| Database             | Connection String              | Multi-Schema | Interactive Mode | Supported |
+| :------------------- | :----------------------------- | :----------: | :--------------: | :-------: |
+| PostgreSQL           | `postgresql://`, `postgres://` |      ✅      |        ✅        |    ✅     |
+| MongoDB              | `mongodb://`, `mongodb+srv://` |      ❌      |        ✅        |    ✅     |
+| MySQL                | `mysql://`                     |      ❌      |        ❌        |    ❌     |
+| Microsoft SQL Server | `mssql://`, `sqlserver://`     |      ❌      |        ❌        |    ❌     |
+| Oracle               | `oracle://`                    |      ❌      |        ❌        |    ❌     |
 
 ## License
 
