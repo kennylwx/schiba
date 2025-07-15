@@ -1,6 +1,7 @@
 export interface ConnectionConfig {
   url: string;
   sslMode: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+  schemas?: string[];
   description?: string;
   created: string;
   updatedAt?: string;

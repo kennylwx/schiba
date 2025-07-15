@@ -19,8 +19,13 @@ export interface PostgresTable {
 }
 
 export interface PostgresSchema {
-  tables?: Record<string, PostgresTable>;
-  enums?: Record<string, string[]>;
+  schemas?: Record<
+    string,
+    {
+      tables?: Record<string, PostgresTable>;
+      enums?: Record<string, string[]>;
+    }
+  >;
 }
 
 export class PostgresAnalyzer {
@@ -31,7 +36,7 @@ export class PostgresAnalyzer {
     this.connectionConfig = connectionConfig;
 
     this.client = new Client({
-      connectionString: connectionConfig.url, // Use the original URL
+      connectionString: connectionConfig.url,
       connectionTimeoutMillis: timeout,
       ssl: buildSSLConfig(connectionConfig.sslMode),
     });
@@ -48,7 +53,6 @@ export class PostgresAnalyzer {
         stats,
       };
     } catch (error) {
-      // Format the error with helpful messages
       throw this.formatError(error);
     } finally {
       await this.client.end();
@@ -114,9 +118,13 @@ export class PostgresAnalyzer {
   }
 
   private async extractSchema(): Promise<PostgresSchema> {
+    const schemasToExtract = this.connectionConfig.schemas || ['public'];
+    const schemaList = schemasToExtract.map((s: string) => `'${s}'`).join(',');
+
     const query = `
       WITH table_info AS (
         SELECT 
+          c.table_schema,
           c.table_name,
           json_agg(
             json_build_object(
@@ -131,17 +139,20 @@ export class PostgresAnalyzer {
                   ON tc.constraint_name = ccu.constraint_name
                 WHERE ccu.column_name = c.column_name 
                   AND ccu.table_name = c.table_name
+                  AND ccu.table_schema = c.table_schema
               )
             ) ORDER BY c.ordinal_position
           ) as columns,
           obj_description(pgc.oid, 'pg_class') as description
         FROM information_schema.columns c
         JOIN pg_class pgc ON pgc.relname = c.table_name
-        WHERE c.table_schema = 'public'
-        GROUP BY c.table_name, pgc.oid
+        JOIN pg_namespace pgn ON pgn.oid = pgc.relnamespace AND pgn.nspname = c.table_schema
+        WHERE c.table_schema IN (${schemaList})
+        GROUP BY c.table_schema, c.table_name, pgc.oid
       ),
       index_info AS (
         SELECT 
+          schemaname as table_schema,
           tablename as table_name,
           json_agg(
             json_build_object(
@@ -150,27 +161,49 @@ export class PostgresAnalyzer {
             )
           ) as indexes
         FROM pg_indexes
-        WHERE schemaname = 'public'
-        GROUP BY tablename
+        WHERE schemaname IN (${schemaList})
+        GROUP BY schemaname, tablename
       ),
       enum_info AS (
         SELECT 
+          n.nspname as schema_name,
           t.typname as enum_name,
           json_agg(e.enumlabel ORDER BY e.enumsortorder) as enum_values
         FROM pg_type t
         JOIN pg_enum e ON t.oid = e.enumtypid
-        GROUP BY t.typname
+        JOIN pg_namespace n ON t.typnamespace = n.oid
+        WHERE n.nspname IN (${schemaList})
+        GROUP BY n.nspname, t.typname
       )
       SELECT json_build_object(
-        'tables', (SELECT json_object_agg(t.table_name, 
-          json_build_object(
-            'columns', t.columns,
-            'description', t.description,
-            'indexes', COALESCE(i.indexes, '[]'::json)
+        'schemas', (
+          SELECT json_object_agg(
+            schema_name,
+            json_build_object(
+              'tables', schema_tables,
+              'enums', schema_enums
+            )
           )
-        ) FROM table_info t
-        LEFT JOIN index_info i ON t.table_name = i.table_name),
-        'enums', (SELECT json_object_agg(enum_name, enum_values) FROM enum_info)
+          FROM (
+            SELECT 
+              t.table_schema as schema_name,
+              json_object_agg(t.table_name, 
+                json_build_object(
+                  'columns', t.columns,
+                  'description', t.description,
+                  'indexes', COALESCE(i.indexes, '[]'::json)
+                )
+              ) as schema_tables,
+              (
+                SELECT json_object_agg(enum_name, enum_values) 
+                FROM enum_info e 
+                WHERE e.schema_name = t.table_schema
+              ) as schema_enums
+            FROM table_info t
+            LEFT JOIN index_info i ON t.table_name = i.table_name AND t.table_schema = i.table_schema
+            GROUP BY t.table_schema
+          ) schemas_data
+        )
       ) as schema;
     `;
 
@@ -179,27 +212,38 @@ export class PostgresAnalyzer {
   }
 
   private calculateStats(schema: PostgresSchema): SchemaStats {
-    const tables = Object.keys(schema.tables || {});
-    const enums = Object.keys(schema.enums || {});
+    let totalTables = 0;
+    let totalColumns = 0;
+    let totalIndexes = 0;
+    let totalEnums = 0;
 
-    const totalColumns = tables.reduce(
-      (acc, table) => acc + (schema.tables?.[table].columns?.length || 0),
-      0
-    );
+    if (schema.schemas) {
+      Object.values(schema.schemas).forEach((schemaData) => {
+        if (schemaData.tables) {
+          const tables = Object.keys(schemaData.tables);
+          totalTables += tables.length;
 
-    const totalIndexes = tables.reduce(
-      (acc, table) => acc + (schema.tables?.[table].indexes?.length || 0),
-      0
-    );
+          tables.forEach((tableName) => {
+            const table = schemaData.tables![tableName];
+            totalColumns += table.columns?.length || 0;
+            totalIndexes += table.indexes?.length || 0;
+          });
+        }
+
+        if (schemaData.enums) {
+          totalEnums += Object.keys(schemaData.enums).length;
+        }
+      });
+    }
 
     return {
       totalSize: JSON.stringify(schema).length,
-      objectCount: tables.length,
+      objectCount: totalTables,
       details: {
-        tables: tables.length,
+        tables: totalTables,
         columns: totalColumns,
         indexes: totalIndexes,
-        enums: enums.length,
+        enums: totalEnums,
       },
     };
   }

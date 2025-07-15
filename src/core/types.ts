@@ -54,6 +54,7 @@ export interface Schema {
 export interface ConnectionConfig {
   url: string;
   sslMode: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
+  schemas?: string[]; // Add schemas array
   description?: string;
   created: string;
   lastUsed?: string;

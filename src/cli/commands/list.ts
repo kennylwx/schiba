@@ -13,14 +13,28 @@ interface ParsedConnectionDetails {
   host: string;
   port: string;
   database: string;
-  schema: string;
+  schemas: string;
 }
 
-// FIX: Added the explicit return type to the function signature.
-function parseConnectionString(url: string, dbType: string): ParsedConnectionDetails {
+function parseConnectionString(
+  url: string,
+  dbType: string,
+  configSchemas?: string[]
+): ParsedConnectionDetails {
   try {
     const urlObj = new URL(url);
     const searchParams = new URLSearchParams(urlObj.search);
+
+    // Handle schemas - prioritize config schemas over URL schema
+    let schemas = 'public'; // default
+    if (configSchemas && configSchemas.length > 0) {
+      schemas = configSchemas.join(', ');
+    } else {
+      const urlSchema = searchParams.get('schema');
+      if (urlSchema) {
+        schemas = urlSchema;
+      }
+    }
 
     switch (dbType.toUpperCase()) {
       case 'POSTGRES':
@@ -30,7 +44,7 @@ function parseConnectionString(url: string, dbType: string): ParsedConnectionDet
           host: urlObj.hostname,
           port: urlObj.port || '5432',
           database: urlObj.pathname.slice(1),
-          schema: searchParams.get('schema') || 'public',
+          schemas: schemas,
         };
       case 'MONGODB':
         return {
@@ -39,7 +53,7 @@ function parseConnectionString(url: string, dbType: string): ParsedConnectionDet
           host: urlObj.hostname,
           port: urlObj.port || '27017',
           database: urlObj.pathname.slice(1) || 'admin',
-          schema: '-',
+          schemas: '-',
         };
       default:
         return {
@@ -48,7 +62,7 @@ function parseConnectionString(url: string, dbType: string): ParsedConnectionDet
           host: urlObj.hostname,
           port: urlObj.port,
           database: urlObj.pathname.slice(1),
-          schema: '-',
+          schemas: schemas,
         };
     }
   } catch {
@@ -58,7 +72,7 @@ function parseConnectionString(url: string, dbType: string): ParsedConnectionDet
       host: '-',
       port: '-',
       database: '-',
-      schema: '-',
+      schemas: '-',
     };
   }
 }
@@ -86,7 +100,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
 
     const connectionDetails = connections.map(({ tag, connection, isDefault }) => {
       const dbType = configManager.detectDatabaseType(connection) || 'Unknown';
-      const details = parseConnectionString(connection.url, dbType);
+      const details = parseConnectionString(connection.url, dbType, connection.schemas);
 
       return {
         tag: isDefault ? `${tag} ${chalk.green('(default)')}` : tag,
@@ -101,7 +115,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
         host: details.host || '-',
         port: details.port || '-',
         database: details.database || '-',
-        schema: details.schema || '-',
+        schemas: details.schemas || '-', // Changed from 'schema' to 'schemas'
         sslMode: connection.sslMode,
         isDefault,
       };
@@ -116,8 +130,8 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       host: Math.max(4, ...connectionDetails.map((c) => c.host.length)),
       port: Math.max(4, ...connectionDetails.map((c) => c.port.length)),
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
-      schema: Math.max(6, ...connectionDetails.map((c) => c.schema.length)),
-      sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)), // "SSL Mode"
+      schemas: Math.max(7, ...connectionDetails.map((c) => c.schemas.length)), // Changed from 'schema' to 'schemas'
+      sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)),
     };
 
     // Print header
@@ -129,7 +143,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       'Host'.padEnd(columns.host),
       'Port'.padEnd(columns.port),
       'Database'.padEnd(columns.database),
-      'Schema'.padEnd(columns.schema),
+      'Schemas'.padEnd(columns.schemas), // Changed from 'Schema' to 'Schemas'
       'SSL Mode'.padEnd(columns.sslMode),
     ].join(' | ');
 
@@ -148,7 +162,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
         conn.host.padEnd(columns.host),
         conn.port.padEnd(columns.port),
         conn.database.padEnd(columns.database),
-        conn.schema.padEnd(columns.schema),
+        conn.schemas.padEnd(columns.schemas), // Changed from 'schema' to 'schemas'
         conn.sslMode.padEnd(columns.sslMode),
       ].join(' | ');
 
@@ -159,6 +173,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       console.log(chalk.dim('\nTip: Use --show-passwords to reveal passwords'));
     }
 
+    console.log(chalk.dim('Tip: Use "schiba schemas <tag>" to configure schemas for a connection'));
     console.log();
   } catch (error) {
     logger.error(`Failed to list connections: ${(error as Error).message}`);
@@ -181,7 +196,8 @@ export function showListHelp(): void {
   console.log(chalk.dim('  schiba add staging "mongodb://localhost:27017/mydb"'));
 
   console.log(chalk.dim('\nAfter adding connections, you can:'));
-  console.log(chalk.dim('  schiba list          # List all connections'));
-  console.log(chalk.dim('  schiba fetch         # Extract schema from default connection'));
-  console.log(chalk.dim('  schiba test <tag>    # Test a specific connection\n'));
+  console.log(chalk.dim('  schiba list              # List all connections'));
+  console.log(chalk.dim('  schiba schemas <tag>     # Configure schemas for a connection'));
+  console.log(chalk.dim('  schiba fetch             # Extract schema from default connection'));
+  console.log(chalk.dim('  schiba test <tag>        # Test a specific connection\n'));
 }

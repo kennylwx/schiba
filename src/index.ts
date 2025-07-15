@@ -10,6 +10,7 @@ import { setDefaultConnection } from './cli/commands/default';
 import { testConnection } from './cli/commands/test';
 import { copyConnectionString } from './cli/commands/copy';
 import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
+import { selectSchemas, listConnectionSchemas, showSchemasHelp } from './cli/commands/schemas';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
@@ -42,6 +43,31 @@ async function main(): Promise<void> {
         }
         await addConnection(tag, connectionString, options || {});
       } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  // Schemas command
+  program
+    .command('schemas [tag]')
+    .description('Manage schemas for a database connection')
+    .option('--list', 'List current schemas for the connection')
+    .action(async (tag?: string, options?: { list?: boolean }) => {
+      try {
+        if (!tag) {
+          showSchemasHelp();
+          throw new Error('Missing required argument: tag');
+        }
+
+        if (options?.list) {
+          await listConnectionSchemas(tag);
+        } else {
+          await selectSchemas(tag);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('\n' + error.message + '\n');
+        }
         process.exit(1);
       }
     });
@@ -155,7 +181,7 @@ async function main(): Promise<void> {
         }
 
         const validProperties: UpdateProperty[] = [
-          'ssl-mode', // 'ssl' is no longer a valid property
+          'ssl-mode',
           'username',
           'password',
           'host',
@@ -182,10 +208,9 @@ async function main(): Promise<void> {
     `
 Get Started:
   $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
+  $ schiba schemas local
   $ schiba fetch
-  $ schiba list
-  $ schiba update local ssl-mode disable
-  $ schiba copy local`
+  $ schiba list`
   );
 
   await program.parseAsync();
