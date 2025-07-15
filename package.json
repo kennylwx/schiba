@@ -1,6 +1,6 @@
 {
   "name": "schiba",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Database schema extraction tool with connection management",
   "type": "module",
   "main": "./dist/index.cjs",
