@@ -58,20 +58,19 @@ export class ConfigManager {
   ): void {
     this.ensureConfig();
 
-    // Check if tag already exists
     if (this.config!.connections[tag]) {
       throw new Error(`Connection '${tag}' already exists`);
     }
 
     const isFirstConnection = Object.keys(this.config!.connections).length === 0;
 
-    // Fixed: Handle ssl option correctly (Commander sets ssl to false when --no-ssl is used)
-    const sslEnabled = options.ssl !== false;
+    // The --no-ssl flag sets options.ssl to false.
+    // If it's not present, options.ssl is true or undefined.
+    const sslDisabled = options.ssl === false;
 
     const connection: ConnectionConfig = {
       url: connectionString,
-      ssl: sslEnabled,
-      sslMode: sslEnabled ? 'prefer' : 'disable',
+      sslMode: sslDisabled ? 'disable' : 'prefer', // Use 'prefer' as a safe default
       description: options.description,
       created: new Date().toISOString(),
     };
@@ -79,7 +78,6 @@ export class ConfigManager {
     ConfigValidator.validateConnectionConfig(connection);
     this.config!.connections[tag] = connection;
 
-    // First connection becomes default automatically
     if (isFirstConnection || options.default) {
       this.config!.default = tag;
     }
@@ -101,25 +99,13 @@ export class ConfigManager {
     const url = new URL(connection.url);
 
     switch (property) {
-      case 'ssl':
-        if (value === 'enable') {
-          connection.ssl = true;
-          connection.sslMode = 'prefer';
-        } else if (value === 'disable') {
-          connection.ssl = false;
-          connection.sslMode = 'disable';
-        } else {
-          throw new Error('SSL value must be "enable" or "disable"');
-        }
-        break;
-
+      // The 'ssl' case has been removed entirely.
       case 'ssl-mode': {
         const validSSLModes = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'];
         if (!validSSLModes.includes(value)) {
           throw new Error(`Invalid SSL mode. Use one of: ${validSSLModes.join(', ')}`);
         }
         connection.sslMode = value as ConnectionConfig['sslMode'];
-        connection.ssl = value !== 'disable';
         break;
       }
 
@@ -162,7 +148,7 @@ export class ConfigManager {
       default:
         throw new Error(`Unknown property: ${property}`);
     }
-    // Update the updatedAt timestamp
+
     connection.updatedAt = new Date().toISOString();
 
     ConfigValidator.validateConnectionConfig(connection);
@@ -181,11 +167,8 @@ export class ConfigManager {
 
     delete this.config.connections[tag];
 
-    // If removed connection was default, clear default
     if (this.config.default === tag) {
       delete this.config.default;
-
-      // Set new default to first remaining connection
       const remaining = Object.keys(this.config.connections);
       if (remaining.length > 0) {
         this.config.default = remaining[0];
@@ -219,11 +202,9 @@ export class ConfigManager {
       throw new Error(`Connection '${targetTag}' not found`);
     }
 
-    // Update last used
     connection.lastUsed = new Date().toISOString();
     this.saveConfig();
 
-    // Parse environment variables in connection string
     const parsedUrl = parseEnvVariables(connection.url);
 
     return {

@@ -1,6 +1,6 @@
 import { Client, type PostgresClient } from '../../utils/pg-client';
 import type { SchemaStats, ConnectionConfig } from '../types';
-import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
+import { buildSSLConfig } from '../../utils/ssl';
 import chalk from 'chalk';
 
 export interface PostgresTable {
@@ -29,11 +29,9 @@ export class PostgresAnalyzer {
 
   constructor(connectionConfig: ConnectionConfig, timeout: number) {
     this.connectionConfig = connectionConfig;
-    // Append SSL mode to connection string
-    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
 
     this.client = new Client({
-      connectionString: connStr,
+      connectionString: connectionConfig.url, // Use the original URL
       connectionTimeoutMillis: timeout,
       ssl: buildSSLConfig(connectionConfig.sslMode),
     });

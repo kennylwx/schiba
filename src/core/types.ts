@@ -53,7 +53,6 @@ export interface Schema {
 // Add connection config types
 export interface ConnectionConfig {
   url: string;
-  ssl: boolean;
   sslMode: 'disable' | 'allow' | 'prefer' | 'require' | 'verify-ca' | 'verify-full';
   description?: string;
   created: string;

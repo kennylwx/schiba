@@ -23,11 +23,10 @@ async function main(): Promise<void> {
     });
 
   // Add command
-
   program
     .command('add [tag] [connection-string]')
     .description('Add a database connection')
-    .option('--no-ssl', 'Disable SSL connection')
+    .option('--no-ssl', 'Disable SSL (sets ssl-mode to "disable")')
     .option('--default', 'Set as default connection')
     .option('--description <text>', 'Add a description')
     .action(async (tag?: string, connectionString?: string, options?: AddOptions) => {
@@ -62,21 +61,15 @@ async function main(): Promise<void> {
         if (options.verbose) {
           logger.setLevel(LogLevel.DEBUG);
         }
-
-        // Validate format option
         if (options.format && !['raw', 'markdown', 'md'].includes(options.format.toLowerCase())) {
           throw new Error('Invalid format option. Use "raw" or "markdown"');
         }
-
-        // Normalize format option
         if (options.format?.toLowerCase() === 'md') {
           options.format = 'markdown';
         }
-
         await fetchSchema(tag, options);
       } catch (error) {
         if (error instanceof Error) {
-          // Display the full error message including multi-line guidance
           console.error('\n' + error.message + '\n');
         } else {
           logger.error(String(error));
@@ -150,26 +143,19 @@ async function main(): Promise<void> {
   program
     .command('update [tag] [property] [value]')
     .description(
-      'Update connection properties (ssl, username, password, host, port, database, schema)'
+      'Update connection properties (ssl-mode, username, password, host, port, database, schema)'
     )
     .action(async (tag?: string, property?: string, value?: string) => {
       try {
-        // Check if help is needed
         if (!tag || !property || !value) {
           showUpdateHelp(tag, property);
-          if (!tag) {
-            throw new Error('Missing required argument: tag');
-          }
-          if (!property) {
-            throw new Error('Missing required argument: property');
-          }
-          if (!value) {
-            throw new Error('Missing required argument: value');
-          }
+          if (!tag) throw new Error('Missing required argument: tag');
+          if (!property) throw new Error('Missing required argument: property');
+          if (!value) throw new Error('Missing required argument: value');
         }
 
         const validProperties: UpdateProperty[] = [
-          'ssl',
+          'ssl-mode', // 'ssl' is no longer a valid property
           'username',
           'password',
           'host',
@@ -177,6 +163,7 @@ async function main(): Promise<void> {
           'database',
           'schema',
         ];
+
         if (!validProperties.includes(property as UpdateProperty)) {
           showUpdateHelp(tag, property);
           throw new Error(`Invalid property. Valid properties are: ${validProperties.join(', ')}`);
@@ -190,22 +177,20 @@ async function main(): Promise<void> {
       }
     });
 
-  // Add example usage after configuring all commands
   program.addHelpText(
     'after',
     `
 Get Started:
-  $ schiba add local "postgresql://localhost:5432/mydb"
+  $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
   $ schiba fetch
   $ schiba list
-  $ schiba update local ssl disable
+  $ schiba update local ssl-mode disable
   $ schiba copy local`
   );
 
   await program.parseAsync();
 }
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (error: Error) => {
   logger.error('Uncaught exception:', error);
   process.exit(1);

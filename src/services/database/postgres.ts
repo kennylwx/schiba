@@ -2,7 +2,7 @@ import { Client, type PostgresClient } from '../../utils/pg-client';
 import { BaseConnection } from './base';
 import type { ConnectionOptions } from './base';
 import type { ConnectionConfig } from '../../core/types';
-import { buildSSLConfig, appendSSLToConnectionString } from '../../utils/ssl';
+import { buildSSLConfig } from '../../utils/ssl';
 import chalk from 'chalk';
 
 export class PostgresConnection extends BaseConnection {
@@ -13,10 +13,8 @@ export class PostgresConnection extends BaseConnection {
     super(connectionConfig.url, options);
     this.connectionConfig = connectionConfig;
 
-    const connStr = appendSSLToConnectionString(connectionConfig.url, connectionConfig.sslMode);
-
     this.client = new Client({
-      connectionString: connStr,
+      connectionString: connectionConfig.url,
       connectionTimeoutMillis: this.options.timeout,
       ssl: buildSSLConfig(connectionConfig.sslMode),
     });
