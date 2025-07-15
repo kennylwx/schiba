@@ -84,7 +84,7 @@ function stripAnsi(str: string): string {
 
 export function showConfigLocation(): void {
   const configPath = configPaths.getConfigPath();
-  console.log(chalk.dim(`\nConfiguration loaded from ${configPath}\n`));
+  console.log(chalk.dim(`Configuration loaded from ${configPath}\n`));
 }
 
 export async function listConnections(options: ListOptions = {}): Promise<void> {
