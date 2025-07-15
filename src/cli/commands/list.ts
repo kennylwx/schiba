@@ -29,6 +29,7 @@ interface ParsedConnectionDetails {
 interface ListOptions {
   showPasswords?: boolean;
 }
+
 export async function listConnections(options: ListOptions = {}): Promise<void> {
   try {
     const connections = configManager.list();
@@ -100,8 +101,17 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
 
     // Print rows
     connectionDetails.forEach((conn) => {
+      const tagPadding = columns.tag + (conn.tag.length - stripAnsi(conn.tag).length);
+
+      // FIX: Center the SSL symbol by adding padding to the left and right.
+      const sslVisibleWidth = stripAnsi(conn.ssl).length;
+      const sslTotalPadding = columns.ssl - sslVisibleWidth;
+      const sslLeftPadding = ' '.repeat(Math.floor(sslTotalPadding / 2));
+      const sslRightPadding = ' '.repeat(Math.ceil(sslTotalPadding / 2));
+      const centeredSsl = `${sslLeftPadding}${conn.ssl}${sslRightPadding}`;
+
       const row = [
-        conn.tag.padEnd(columns.tag + (conn.isDefault ? 10 : 0)), // Extra space for (default)
+        conn.tag.padEnd(tagPadding),
         conn.type.padEnd(columns.type),
         conn.username.padEnd(columns.username),
         conn.password.padEnd(columns.password),
@@ -109,7 +119,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
         conn.port.padEnd(columns.port),
         conn.database.padEnd(columns.database),
         conn.schema.padEnd(columns.schema),
-        conn.ssl.padEnd(columns.ssl),
+        centeredSsl, // Use the new centered string
         conn.sslMode.padEnd(columns.sslMode),
       ].join(' | ');
 
