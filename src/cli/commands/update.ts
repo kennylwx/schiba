@@ -4,6 +4,7 @@ import chalk from 'chalk';
 
 export type UpdateProperty =
   | 'ssl'
+  | 'ssl-mode'
   | 'username'
   | 'password'
   | 'host'
@@ -42,6 +43,7 @@ export function showUpdateHelp(tag?: string, property?: string): void {
   if (!property || tag) {
     console.log(chalk.dim('\nAvailable properties:'));
     console.log(chalk.dim('  - ssl        : enable/disable'));
+    console.log(chalk.dim('  - ssl-mode   : SSL mode (e.g., require, verify-ca)'));
     console.log(chalk.dim('  - username   : database username'));
     console.log(chalk.dim('  - password   : database password'));
     console.log(chalk.dim('  - host       : database host'));
