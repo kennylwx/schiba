@@ -13,7 +13,7 @@ interface ParsedConnectionDetails {
   host: string;
   port: string;
   database: string;
-  schemas: string;
+  schemas: string; // Changed from 'schema' to 'schemas'
 }
 
 function parseConnectionString(
@@ -53,7 +53,7 @@ function parseConnectionString(
           host: urlObj.hostname,
           port: urlObj.port || '27017',
           database: urlObj.pathname.slice(1) || 'admin',
-          schemas: '-',
+          schemas: '-', // MongoDB doesn't have schemas like PostgreSQL
         };
       default:
         return {
@@ -103,50 +103,54 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       const details = parseConnectionString(connection.url, dbType, connection.schemas);
 
       return {
-        tag: isDefault ? `${tag} ${chalk.green('(default)')}` : tag,
+        tag: isDefault ? `${tag} ${chalk.green('*')}` : tag,
         type: dbType,
         username: details.username || '-',
-        password:
-          options.showPasswords && details.password
-            ? details.password
-            : details.password
-              ? '***'
-              : '-',
+        password: details.password ? (options.showPasswords ? details.password : '***') : '-',
         host: details.host || '-',
         port: details.port || '-',
         database: details.database || '-',
-        schemas: details.schemas || '-', // Changed from 'schema' to 'schemas'
+        schemas: details.schemas || '-',
         sslMode: connection.sslMode,
         isDefault,
       };
     });
 
-    // Calculate column widths
+    // Calculate column widths (conditionally include password)
     const columns = {
       tag: Math.max(3, ...connectionDetails.map((c) => stripAnsi(c.tag).length)),
       type: Math.max(4, ...connectionDetails.map((c) => c.type.length)),
       username: Math.max(8, ...connectionDetails.map((c) => c.username.length)),
-      password: Math.max(8, ...connectionDetails.map((c) => c.password.length)),
+      password: options.showPasswords
+        ? Math.max(8, ...connectionDetails.map((c) => c.password.length))
+        : 0,
       host: Math.max(4, ...connectionDetails.map((c) => c.host.length)),
       port: Math.max(4, ...connectionDetails.map((c) => c.port.length)),
       database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
-      schemas: Math.max(7, ...connectionDetails.map((c) => c.schemas.length)), // Changed from 'schema' to 'schemas'
+      schemas: Math.max(7, ...connectionDetails.map((c) => c.schemas.length)),
       sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)),
     };
 
-    // Print header
-    const header = [
+    // Build header array conditionally
+    const headerItems = [
       'Tag'.padEnd(columns.tag),
       'Type'.padEnd(columns.type),
       'Username'.padEnd(columns.username),
-      'Password'.padEnd(columns.password),
+    ];
+
+    if (options.showPasswords) {
+      headerItems.push('Password'.padEnd(columns.password));
+    }
+
+    headerItems.push(
       'Host'.padEnd(columns.host),
       'Port'.padEnd(columns.port),
       'Database'.padEnd(columns.database),
-      'Schemas'.padEnd(columns.schemas), // Changed from 'Schema' to 'Schemas'
-      'SSL Mode'.padEnd(columns.sslMode),
-    ].join(' | ');
+      'Schemas'.padEnd(columns.schemas),
+      'SSL Mode'.padEnd(columns.sslMode)
+    );
 
+    const header = headerItems.join(' | ');
     console.log(chalk.bold(header));
     console.log(chalk.dim('-'.repeat(header.length)));
 
@@ -154,26 +158,37 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
     connectionDetails.forEach((conn) => {
       const tagPadding = columns.tag + (conn.tag.length - stripAnsi(conn.tag).length);
 
-      const row = [
+      const rowItems = [
         conn.tag.padEnd(tagPadding),
         conn.type.padEnd(columns.type),
         conn.username.padEnd(columns.username),
-        conn.password.padEnd(columns.password),
+      ];
+
+      if (options.showPasswords) {
+        rowItems.push(conn.password.padEnd(columns.password));
+      }
+
+      rowItems.push(
         conn.host.padEnd(columns.host),
         conn.port.padEnd(columns.port),
         conn.database.padEnd(columns.database),
-        conn.schemas.padEnd(columns.schemas), // Changed from 'schema' to 'schemas'
-        conn.sslMode.padEnd(columns.sslMode),
-      ].join(' | ');
+        conn.schemas.padEnd(columns.schemas),
+        conn.sslMode.padEnd(columns.sslMode)
+      );
 
+      const row = rowItems.join(' | ');
       console.log(row);
     });
 
     if (!options.showPasswords) {
-      console.log(chalk.dim('\nTip: Use --show-passwords to reveal passwords'));
+      console.log(
+        chalk.dim('\nTip 1: Use --show-passwords to reveal passwords and show Password column')
+      );
     }
 
-    console.log(chalk.dim('Tip: Use "schiba schemas <tag>" to configure schemas for a connection'));
+    console.log(
+      chalk.dim('Tip 2: Use "schiba schemas <tag>" to configure schemas for a connection')
+    );
     console.log();
   } catch (error) {
     logger.error(`Failed to list connections: ${(error as Error).message}`);

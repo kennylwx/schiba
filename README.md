@@ -1,6 +1,6 @@
 # 🐕 Schiba (Database Schema Extractor for LLM)
 
-Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows.
+Database schema extraction tool with built-in connection management. Schiba generates compact, token-efficient schema representations optimized for AI context windows with support for multi-schema extraction.
 
 ## Installation
 
@@ -25,10 +25,13 @@ choco install schiba
 # The --no-ssl flag sets the ssl-mode to 'disable'.
 schiba add local "postgresql://user:pass@localhost:5432/mydb" --no-ssl
 
-# 2. Fetch the schema (it's saved to a file and copied to your clipboard)
+# 2. Configure which schemas to extract (interactive selection)
+schiba schemas local
+
+# 3. Fetch the schema (it's saved to a file and copied to your clipboard)
 schiba fetch
 
-# 3. List all your saved connections in a tidy table
+# 4. List all your saved connections in a tidy table
 schiba list
 ```
 
@@ -64,9 +67,44 @@ schiba add dev "mongodb://localhost:27017/devdb" --no-ssl
 
 ---
 
+### `schemas`
+
+Manage schemas for a database connection with an interactive multi-select interface.
+
+**Usage**
+
+```bash
+schiba schemas <tag> [options]
+```
+
+**Options**
+
+- `--list`: List current schemas for the connection.
+
+**Examples**
+
+```bash
+# Interactive schema selection (shows checkbox interface)
+schiba schemas prod
+
+# List currently selected schemas
+schiba schemas prod --list
+```
+
+**Interactive Interface**
+The schemas command provides a modern checkbox interface where you can:
+
+- Use ↑/↓ arrow keys to navigate
+- Press space to select/deselect schemas
+- Press 'a' to toggle all schemas
+- Press 'i' to invert selection
+- Press enter to confirm your selection
+
+---
+
 ### `list`
 
-Lists all saved connections in a table format.
+Lists all saved connections in a table format, showing selected schemas for each connection.
 
 **Usage**
 
@@ -88,7 +126,7 @@ schiba list --show-passwords
 
 ### `fetch`
 
-Fetches the database schema, formats it, saves it to a file, and copies it to the clipboard.
+Fetches the database schema from all selected schemas, formats it, saves it to a file, and copies it to the clipboard.
 
 **Usage**
 
@@ -108,7 +146,7 @@ schiba fetch [tag] [options]
 **Examples**
 
 ```bash
-# Fetch schema from the default connection
+# Fetch schema from the default connection (all selected schemas)
 schiba fetch
 
 # Fetch schema from a specific connection in markdown format
@@ -226,6 +264,37 @@ schiba copy <tag>
 schiba copy prod
 ```
 
+## Multi-Schema Support
+
+Schiba supports extracting from multiple database schemas simultaneously. This is particularly useful for PostgreSQL databases with multiple schemas.
+
+### How it works:
+
+1. **Add a connection**: `schiba add local "postgresql://localhost:5432/mydb"`
+2. **Select schemas interactively**: `schiba schemas local`
+3. **Extract all selected schemas**: `schiba fetch local`
+
+### Schema Selection Interface:
+
+```
+📋 Schema Selection for 'local'
+
+Currently selected: public, orders
+
+Instructions:
+  ↑/↓ to navigate, space to select/deselect, enter to confirm
+  a to toggle all, i to invert selection
+
+? Select schemas to extract: (Press <space> to select, <a> to toggle all, <i> to invert selection, and <enter> to proceed)
+❯◉ public
+ ◯ orders
+ ◉ analytics
+ ◯ reporting
+ ◯ temp_data
+```
+
+The extracted schema will include tables, columns, indexes, and enums from all selected schemas, organized by schema name.
+
 ## Configuration
 
 Schiba stores its configuration in a `config.json` file in a centralized location on your system.
@@ -258,13 +327,13 @@ schiba add prod "postgresql://${DB_USER}:${DB_PASS}@prod-host.com/db"
 
 ## Supported Databases
 
-| Database             | Connection String              | Supported |
-| :------------------- | :----------------------------- | :-------: |
-| PostgreSQL           | `postgresql://`, `postgres://` |    ✅     |
-| MongoDB              | `mongodb://`, `mongodb+srv://` |    ✅     |
-| MySQL                | `mysql://`                     |    ❌     |
-| Microsoft SQL Server | `mssql://`, `sqlserver://`     |    ❌     |
-| Oracle               | `oracle://`                    |    ❌     |
+| Database             | Connection String              | Multi-Schema | Supported |
+| :------------------- | :----------------------------- | :----------: | :-------: |
+| PostgreSQL           | `postgresql://`, `postgres://` |      ✅      |    ✅     |
+| MongoDB              | `mongodb://`, `mongodb+srv://` |      ❌      |    ✅     |
+| MySQL                | `mysql://`                     |      ❌      |    ❌     |
+| Microsoft SQL Server | `mssql://`, `sqlserver://`     |      ❌      |    ❌     |
+| Oracle               | `oracle://`                    |      ❌      |    ❌     |
 
 ## License
 

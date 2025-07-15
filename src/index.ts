@@ -210,7 +210,18 @@ Get Started:
   $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
   $ schiba schemas local
   $ schiba fetch
-  $ schiba list`
+  $ schiba list
+
+Common Workflows:
+  $ schiba schemas prod              # Select schemas interactively
+  $ schiba schemas prod --list       # Show current schema selection
+  $ schiba fetch prod --format md    # Extract to markdown format
+  $ schiba update prod ssl-mode require  # Update connection settings
+  
+Multi-Schema Support:
+  - Use 'schiba schemas <tag>' for interactive schema selection
+  - Extract from multiple PostgreSQL schemas simultaneously
+  - View selected schemas in 'schiba list' output`
   );
 
   await program.parseAsync();
