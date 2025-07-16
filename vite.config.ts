@@ -43,6 +43,7 @@ export default defineConfig({
         'async_hooks',
         'events',
         'tty',
+        'prompts',
       ],
     },
     sourcemap: true,
