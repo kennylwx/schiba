@@ -6,6 +6,7 @@ import { CONFIG } from '../config/default';
 import { logger } from '../utils/logger';
 import { detectDatabaseType } from '../utils/helpers';
 import { parseEnvVariables } from '../utils/env';
+import { TagGenerator, type TagGenerationResult } from '../utils/tag-generator';
 
 export class ConfigManager {
   private static instance: ConfigManager;
@@ -51,16 +52,85 @@ export class ConfigManager {
     return this.storage.exists();
   }
 
+  /**
+   * Generate a unique tag using Greek alphabet rotation or resolve conflicts
+   */
+  private generateUniqueTag(requestedTag?: string): TagGenerationResult {
+    this.ensureConfig();
+    const existingTags = Object.keys(this.config!.connections);
+    const tagGenerator = new TagGenerator(existingTags);
+    return tagGenerator.getUniqueTag(requestedTag);
+  }
+
+  /**
+   * Rename a connection tag
+   */
+  public renameTag(
+    currentTag: string,
+    newTag: string
+  ): { finalTag: string; tagResult: TagGenerationResult } {
+    if (!this.config) {
+      throw new Error('No connections configured');
+    }
+
+    if (!this.config.connections[currentTag]) {
+      throw new Error(`Connection '${currentTag}' not found`);
+    }
+
+    // Validate new tag format
+    if (!newTag.trim()) {
+      throw new Error('New tag cannot be empty');
+    }
+
+    const sanitizedNewTag = newTag.trim();
+    if (sanitizedNewTag.includes(' ')) {
+      throw new Error('Tag cannot contain spaces');
+    }
+
+    if (sanitizedNewTag.length > 50) {
+      throw new Error('Tag must be 50 characters or less');
+    }
+
+    // Generate unique tag (handles conflicts automatically)
+    const tagResult = this.generateUniqueTag(sanitizedNewTag);
+    const finalTag = tagResult.tag;
+
+    // Copy connection with new tag
+    const connection = { ...this.config.connections[currentTag] };
+    connection.updatedAt = new Date().toISOString();
+
+    // Add with new tag and remove old tag
+    this.config.connections[finalTag] = connection;
+    delete this.config.connections[currentTag];
+
+    // Update default connection if necessary
+    if (this.config.default === currentTag) {
+      this.config.default = finalTag;
+    }
+
+    this.saveConfig();
+
+    if (currentTag !== finalTag) {
+      logger.success(
+        `Renamed connection '${currentTag}' to '${finalTag}'${this.config.default === finalTag ? ' (default)' : ''}`
+      );
+    } else {
+      logger.success(`Connection tag '${currentTag}' is already using the requested name`);
+    }
+
+    return { finalTag, tagResult };
+  }
+
   public add(
-    tag: string,
+    tag: string | undefined,
     connectionString: string,
     options: { ssl?: boolean; default?: boolean; description?: string } = {}
-  ): void {
+  ): { finalTag: string; tagResult: TagGenerationResult } {
     this.ensureConfig();
 
-    if (this.config!.connections[tag]) {
-      throw new Error(`Connection '${tag}' already exists`);
-    }
+    // Generate unique tag
+    const tagResult = this.generateUniqueTag(tag);
+    const finalTag = tagResult.tag;
 
     const isFirstConnection = Object.keys(this.config!.connections).length === 0;
 
@@ -76,17 +146,25 @@ export class ConfigManager {
     };
 
     ConfigValidator.validateConnectionConfig(connection);
-    this.config!.connections[tag] = connection;
+    this.config!.connections[finalTag] = connection;
 
     if (isFirstConnection || options.default) {
-      this.config!.default = tag;
+      this.config!.default = finalTag;
     }
 
     this.saveConfig();
-    logger.success(`Added connection '${tag}'${this.config!.default === tag ? ' (default)' : ''}`);
+    logger.success(
+      `Added connection '${finalTag}'${this.config!.default === finalTag ? ' (default)' : ''}`
+    );
+
+    return { finalTag, tagResult };
   }
 
-  public update(tag: string, property: string, value: string): void {
+  public update(
+    tag: string,
+    property: string,
+    value: string
+  ): { finalTag: string; tagResult: TagGenerationResult } | void {
     if (!this.config) {
       throw new Error('No connections configured');
     }
@@ -95,11 +173,16 @@ export class ConfigManager {
       throw new Error(`Connection '${tag}' not found`);
     }
 
+    // Handle tag renaming - return the result
+    if (property === 'tag') {
+      return this.renameTag(tag, value);
+    }
+
+    // For all other properties, continue with existing logic and return void
     const connection = this.config.connections[tag];
     const url = new URL(connection.url);
 
     switch (property) {
-      // The 'ssl' case has been removed entirely.
       case 'ssl-mode': {
         const validSSLModes = ['disable', 'allow', 'prefer', 'require', 'verify-ca', 'verify-full'];
         if (!validSSLModes.includes(value)) {
@@ -154,6 +237,9 @@ export class ConfigManager {
     ConfigValidator.validateConnectionConfig(connection);
     this.saveConfig();
     logger.success(`Updated '${property}' for connection '${tag}'`);
+
+    // Return void for non-tag updates
+    return;
   }
 
   public remove(tag: string): void {

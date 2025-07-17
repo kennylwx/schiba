@@ -48,6 +48,9 @@ Adds a new database connection to the configuration. **Interactive mode is recom
 # Interactive mode (recommended) - step-by-step setup
 schiba add
 
+# Auto-generate tag mode - uses Greek alphabet
+schiba add <connection-string>
+
 # Direct mode - provide all details upfront
 schiba add <tag> <connection-string> [options]
 ```
@@ -78,6 +81,9 @@ When you run `schiba add` without arguments, you'll get a guided setup that asks
 ```bash
 # Interactive setup (recommended for beginners)
 schiba add
+
+# Auto-generate Greek alphabet tag (e.g., "alpha")
+schiba add "postgresql://localhost:5432/mydb"
 
 # Quick setup for experienced users
 schiba add prod "postgresql://user:pass@host:5432/db" --default
