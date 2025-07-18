@@ -159,7 +159,7 @@ export function showAddHelp(tag?: string): void {
     console.log(chalk.dim('  - local, staging, production, dev, test'));
   }
 
-  console.log(chalk.dim('\nConnection string formats:'));
+  console.log(chalk.dim('\nConnection string formats (for direct mode):'));
   console.log(chalk.dim('  PostgreSQL: postgresql://user:pass@host:port/database'));
   console.log(chalk.dim('  MongoDB:    mongodb://user:pass@host:port/database'));
 
