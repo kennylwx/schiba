@@ -1,5 +1,7 @@
 import { input, select, confirm, password } from '@inquirer/prompts';
 import chalk from 'chalk';
+import { configManager } from '../../config/manager';
+import { TagGenerator } from '../../utils/tag-generator';
 
 export interface DatabaseConnectionDetails {
   dbType: string;
@@ -37,10 +39,14 @@ export class InteractivePrompts {
       ],
     });
 
-    // Step 2: Connection Tag
+    // Step 2: Connection Tag with smart suggestions
+    const existingTags = configManager.list().map((conn) => conn.tag);
+    const tagGenerator = new TagGenerator(existingTags);
+    const suggestedTag = tagGenerator.generateUniqueTag().tag;
+
     const tag = await input({
       message: 'Enter a name/tag for this connection:',
-      default: 'local',
+      default: suggestedTag,
       validate: (input: string) => {
         if (!input.trim()) return 'Connection tag cannot be empty';
         if (input.includes(' ')) return 'Connection tag cannot contain spaces';
@@ -189,6 +195,16 @@ export class InteractivePrompts {
     }
     console.log(`${chalk.cyan('Default:')} ${details.setAsDefault ? 'Yes' : 'No'}`);
     console.log(chalk.dim('────────────────────────────────────────'));
+
+    // Show note about automatic tag conflict resolution
+    const existingTags = configManager.list().map((conn) => conn.tag);
+    if (existingTags.includes(details.tag.toLowerCase())) {
+      console.log(
+        chalk.yellow(
+          `\nℹ️  Note: Tag '${details.tag}' is already taken. A unique name will be auto-generated.`
+        )
+      );
+    }
 
     return await confirm({
       message: 'Does this look correct?',

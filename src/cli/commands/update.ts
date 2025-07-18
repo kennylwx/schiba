@@ -10,7 +10,8 @@ export type UpdateProperty =
   | 'host'
   | 'port'
   | 'database'
-  | 'schema';
+  | 'schema'
+  | 'tag';
 
 export async function updateConnection(
   tag: string,
@@ -18,7 +19,21 @@ export async function updateConnection(
   value: string
 ): Promise<void> {
   try {
-    configManager.update(tag, property, value);
+    const result = configManager.update(tag, property, value);
+
+    // Handle tag renaming feedback - only for tag updates
+    if (property === 'tag' && result) {
+      // TypeScript now knows result is { finalTag: string; tagResult: TagGenerationResult }
+      const { finalTag, tagResult } = result;
+
+      if (tagResult.wasConflictResolved) {
+        console.log(
+          chalk.yellow(
+            `⚠️  Tag '${tagResult.originalTag}' already exists. Using '${finalTag}' instead.`
+          )
+        );
+      }
+    }
   } catch (error) {
     logger.error(`Failed to update connection: ${(error as Error).message}`);
     throw error;
@@ -42,6 +57,7 @@ export function showUpdateHelp(tag?: string, property?: string): void {
 
   if (!property || tag) {
     console.log(chalk.dim('\nAvailable properties:'));
+    console.log(chalk.dim('  - tag        : rename the connection tag'));
     console.log(chalk.dim('  - ssl        : enable/disable'));
     console.log(chalk.dim('  - ssl-mode   : SSL mode (e.g., require, verify-ca)'));
     console.log(chalk.dim('  - username   : database username'));
@@ -53,7 +69,21 @@ export function showUpdateHelp(tag?: string, property?: string): void {
   }
 
   console.log(chalk.dim('\nExamples:'));
-  console.log(chalk.dim('  schiba update local ssl disable'));
+  console.log(chalk.dim('  schiba update local ssl-mode disable'));
   console.log(chalk.dim('  schiba update prod username newuser'));
-  console.log(chalk.dim('  schiba update local port 5433\n'));
+  console.log(chalk.dim('  schiba update local port 5433'));
+  console.log(
+    chalk.dim('  schiba update alpha tag production    # Rename "alpha" to "production"')
+  );
+  console.log(
+    chalk.dim(
+      '  schiba update local tag prod          # Rename "local" to "prod" (or "prod-1" if taken)'
+    )
+  );
+
+  console.log(
+    chalk.dim(
+      '\nNote: When renaming tags, if the new name is taken, a number will be appended automatically.\n'
+    )
+  );
 }

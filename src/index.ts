@@ -160,7 +160,7 @@ async function main(): Promise<void> {
   program
     .command('update [tag] [property] [value]')
     .description(
-      'Update connection properties (ssl-mode, username, password, host, port, database, schema)'
+      'Update connection properties (tag, ssl-mode, username, password, host, port, database, schema)'
     )
     .action(async (tag?: string, property?: string, value?: string) => {
       try {
@@ -172,6 +172,7 @@ async function main(): Promise<void> {
         }
 
         const validProperties: UpdateProperty[] = [
+          'tag',
           'ssl-mode',
           'username',
           'password',
@@ -198,8 +199,7 @@ async function main(): Promise<void> {
     'after',
     `
 Get Started:
-  $ schiba add local "postgresql://localhost:5432/mydb" --no-ssl
-  $ schiba schemas local
+  $ schiba add "postgresql://localhost:5432/mydb"
   $ schiba fetch
   $ schiba list
 
