@@ -11,6 +11,9 @@ import { testConnection } from './cli/commands/test';
 import { copyConnectionString } from './cli/commands/copy';
 import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
 import { selectSchemas, listConnectionSchemas, showSchemasHelp } from './cli/commands/schemas';
+import { startMcpServer, showMcpUpHelp } from './mcp/commands/up';
+import { stopMcpServer, showMcpDownHelp } from './mcp/commands/down';
+import { showMcpServerStatus, showMcpStatusHelp } from './mcp/commands/status';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
@@ -195,6 +198,47 @@ async function main(): Promise<void> {
       }
     });
 
+  // MCP Server commands
+  program
+    .command('up')
+    .description('Start the MCP (Model Context Protocol) server')
+    .option('--port <number>', 'Port for MCP server (default: 3001)', parseInt)
+    .option('--no-detach', 'Run in foreground (attached mode)')
+    .option('--verbose', 'Enable verbose logging')
+    .action(async (options) => {
+      try {
+        await startMcpServer(options);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('down')
+    .description('Stop the MCP server')
+    .option('--force', 'Force kill the server process')
+    .option('--verbose', 'Enable verbose logging during shutdown')
+    .action(async (options) => {
+      try {
+        await stopMcpServer(options);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
+  program
+    .command('status')
+    .description('Check MCP server status')
+    .option('--verbose', 'Show detailed system information')
+    .option('--logs', 'Show recent operation logs')
+    .action(async (options) => {
+      try {
+        await showMcpServerStatus(options);
+      } catch (error) {
+        process.exit(1);
+      }
+    });
+
   program.addHelpText(
     'after',
     `
@@ -212,7 +256,15 @@ Common Workflows:
 Multi-Schema Support:
   - Use 'schiba schemas <tag>' for interactive schema selection
   - Extract from multiple PostgreSQL schemas simultaneously
-  - View selected schemas in 'schiba list' output`
+  - View selected schemas in 'schiba list' output
+
+MCP Server (Model Context Protocol):
+  $ schiba up                        # Start MCP server for AI integration
+  $ schiba status                    # Check server status and uptime
+  $ schiba down                      # Stop MCP server
+  
+  The MCP server exposes all Schiba functionality as tools that AI assistants
+  and other MCP clients can use to interact with your databases.`
   );
 
   await program.parseAsync();
