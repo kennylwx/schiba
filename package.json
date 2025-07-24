@@ -27,7 +27,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "prebuild": "pnpm run clean",
-    "build": "vite build && tsc --emitDeclarationOnly",
+    "build": "tsc && vite build && tsc --emitDeclarationOnly",
     "start": "node dist/index.js",
     "dev": "vite",
     "test": "jest",

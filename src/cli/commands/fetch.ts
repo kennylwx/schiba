@@ -9,7 +9,7 @@ import { CONFIG } from '../../config/default';
 import { EMOJI_MAP } from '../../utils/constants';
 import { TokenCounterImpl } from '../../services/tokenizer/implementations';
 import { configManager } from '../../config/manager';
-import { SchemaStats } from '@/core/types';
+import { SchemaStats } from '../../core/types';
 import { formatDuration } from '../../utils/helpers';
 
 export interface FetchOptions {

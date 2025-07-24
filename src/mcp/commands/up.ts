@@ -1,14 +1,9 @@
 import { spawn, ChildProcess } from 'child_process';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { existsSync } from 'fs';
 import ora from 'ora';
 import { McpStore } from '../server/store';
 import { logger } from '../../utils/logger';
 import { EMOJI_MAP } from '../../utils/constants';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export interface McpUpOptions {
   port?: number;
@@ -49,13 +44,23 @@ export async function startMcpServer(options: McpUpOptions = {}): Promise<void> 
       store.updateServerState({ port });
     }
 
-    // Path to the MCP server file
-    const serverPath = join(__dirname, '../server/index.js');
+    // Path to the main CLI executable to run the internal MCP server command
+    // Use process.argv[1] to get the actual path of the running executable
+    const cliPath = process.argv[1];
 
-    // Spawn the MCP server process
-    const serverProcess: ChildProcess = spawn('node', [serverPath], {
+    if (options.verbose) {
+      logger.info(`Debug: Using CLI path: ${cliPath}`);
+      logger.info(`Debug: file exists: ${existsSync(cliPath)}`);
+    }
+
+    // Spawn the MCP server process using the internal command
+    const serverProcess: ChildProcess = spawn('node', [cliPath, '_mcp-server'], {
       detached: options.detach !== false, // Default to true for detachment
-      stdio: options.verbose ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+      stdio: options.verbose
+        ? 'inherit'
+        : options.detach !== false
+          ? 'ignore'
+          : ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
         MCP_SERVER_PORT: port.toString(),
@@ -66,28 +71,68 @@ export async function startMcpServer(options: McpUpOptions = {}): Promise<void> 
       throw new Error('Failed to start MCP server process');
     }
 
-    // Wait a moment to see if the process starts successfully
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        resolve(true);
-      }, 2000);
-
-      serverProcess.on('error', (error) => {
-        clearTimeout(timeout);
-        reject(error);
+    // Capture stderr for better error reporting
+    let stderr = '';
+    if (serverProcess.stderr) {
+      serverProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
       });
+    }
 
-      serverProcess.on('exit', (code) => {
-        clearTimeout(timeout);
-        if (code !== 0) {
-          reject(new Error(`Server process exited with code ${code}`));
-        }
-      });
-    });
-
-    // If detached, unref the process so parent can exit
+    // If detached, unref the process immediately so parent can exit
     if (options.detach !== false) {
       serverProcess.unref();
+      // For detached mode, just wait briefly to check for immediate errors
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          resolve(true);
+        }, 500); // Very short wait for detached mode
+
+        serverProcess.on('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+
+        // Only check for immediate exit errors in detached mode
+        const exitHandler = (code: number | null): void => {
+          if (code !== null && code !== 0) {
+            clearTimeout(timeout);
+            const errorMessage = `Server process exited with code ${code}${
+              stderr ? `:\n${stderr}` : ''
+            }`;
+            reject(new Error(errorMessage));
+          }
+        };
+
+        serverProcess.once('exit', exitHandler);
+
+        // Remove the exit handler after timeout to prevent hanging
+        setTimeout(() => {
+          serverProcess.removeListener('exit', exitHandler);
+        }, 500);
+      });
+    } else {
+      // For attached mode, wait longer and monitor properly
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          resolve(true);
+        }, 2000);
+
+        serverProcess.on('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+
+        serverProcess.on('exit', (code) => {
+          clearTimeout(timeout);
+          if (code !== 0) {
+            const errorMessage = `Server process exited with code ${code}${
+              stderr ? `:\n${stderr}` : ''
+            }`;
+            reject(new Error(errorMessage));
+          }
+        });
+      });
     }
 
     // Update server state
@@ -100,31 +145,38 @@ export async function startMcpServer(options: McpUpOptions = {}): Promise<void> 
 
     spinner.succeed('MCP Server started successfully');
 
-    logger.info(`\n${EMOJI_MAP.success} Schiba MCP Server is now running`);
+    logger.info(`\n${EMOJI_MAP.success} Schiba MCP Server started successfully!`);
     logger.info(`   Process ID: ${serverProcess.pid}`);
-    logger.info(`   Port: ${port}`);
     logger.info(`   Transport: stdio (MCP standard)`);
-
     if (options.detach !== false) {
-      logger.info(`   Mode: Detached (background)`);
+      logger.info(`   Mode: Detached (running in background)`);
+    } else {
+      logger.info(`   Mode: Attached (foreground)`);
     }
 
-    logger.info('\n📋 Available MCP Tools:');
-    logger.info('   • list_connections       - List all database connections');
-    logger.info('   • fetch_schema           - Extract database schema');
-    logger.info('   • test_connection        - Test database connectivity');
-    logger.info('   • add_connection         - Add new database connection');
-    logger.info('   • remove_connection      - Remove database connection');
-    logger.info('   • update_connection      - Update connection properties');
-    logger.info('   • set_default_connection - Set default connection');
-    logger.info('   • get_operation_logs     - Get server operation logs');
+    logger.info('\n🔌 Connect with MCP Clients:');
+    logger.info('   • Claude Desktop - Add to your claude_desktop_config.json:');
+    logger.info('     {');
+    logger.info('       "mcpServers": {');
+    logger.info('         "schiba": {');
+    logger.info(`           "command": "node",`);
+    logger.info(`           "args": ["${process.argv[1]}", "_mcp-server"]`);
+    logger.info('         }');
+    logger.info('       }');
+    logger.info('     }');
+    logger.info('   • Other MCP clients - Use stdio transport with the above command');
+
+    logger.info('\n📋 Available Database Tools:');
+    logger.info('   • list_connections, fetch_schema, test_connection');
+    logger.info('   • add_connection, remove_connection, update_connection');
+    logger.info('   • set_default_connection, get_operation_logs');
 
     logger.info('\n🔧 Server Management:');
-    logger.info('   • schiba status          - Check server status');
+    logger.info('   • schiba status          - Check server status and uptime');
     logger.info('   • schiba down           - Stop the server');
-    logger.info('   • schiba up --verbose   - Start with verbose logging');
+    logger.info('   • schiba up --no-detach - Start in foreground mode');
 
-    logger.info('\n📖 For MCP client configuration, see:');
+    logger.info('\n📖 Documentation & Examples:');
     logger.info('   https://github.com/kennylwx/schiba#mcp-integration\n');
   } catch (error) {
     spinner.fail('Failed to start MCP Server');

@@ -1,7 +1,7 @@
 import ora from 'ora';
 import chalk from 'chalk';
 import { configManager } from '../../config/manager';
-import { createConnection } from '../../services/database';
+import { createConnection } from '../../services/database/index';
 import { logger } from '../../utils/logger';
 
 export async function testConnection(tag?: string): Promise<void> {

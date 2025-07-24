@@ -1,7 +1,7 @@
-import { TokenCounter } from '@/services/tokenizer/types';
+import { TokenCounter } from '../../services/tokenizer/types';
 import { EMOJI_MAP } from '../../utils/constants';
 import { SchemaStats } from '../types';
-import { TokenCounterImpl } from '@/services/tokenizer/implementations';
+import { TokenCounterImpl } from '../../services/tokenizer/implementations';
 
 export abstract class BaseFormatter {
   protected tokenCounter: TokenCounter;

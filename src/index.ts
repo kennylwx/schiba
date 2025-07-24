@@ -239,6 +239,34 @@ async function main(): Promise<void> {
       }
     });
 
+  // Hidden command to start MCP server internally (used by the up command)
+  program
+    .command('_mcp-server', { hidden: true })
+    .description('Internal command to start MCP server')
+    .action(async () => {
+      try {
+        const { SchibaMcpServer } = await import('./mcp/server/index');
+        const server = new SchibaMcpServer();
+
+        process.on('SIGINT', async () => {
+          process.stderr.write('\nShutting down Schiba MCP Server...\n');
+          await server.stop();
+          process.exit(0);
+        });
+
+        process.on('SIGTERM', async () => {
+          process.stderr.write('\nShutting down Schiba MCP Server...\n');
+          await server.stop();
+          process.exit(0);
+        });
+
+        await server.start();
+      } catch (error) {
+        process.stderr.write(`Failed to start Schiba MCP Server: ${error}\n`);
+        process.exit(1);
+      }
+    });
+
   program.addHelpText(
     'after',
     `

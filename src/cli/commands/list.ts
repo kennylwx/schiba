@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { configManager } from '../../config/manager';
 import { logger } from '../../utils/logger';
-import { configPaths } from '@/config/paths';
+import { configPaths } from '../../config/paths';
 
 interface ListOptions {
   showPasswords?: boolean;

@@ -1,14 +1,31 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { copyFileSync } from 'fs';
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [
+    tsconfigPaths(),
+    {
+      name: 'copy-package-json',
+      writeBundle() {
+        copyFileSync('package.json', 'dist/package.json');
+      }
+    }
+  ],
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: {
+        index: resolve(__dirname, 'src/index.ts'),
+        'mcp/server/index': resolve(__dirname, 'src/mcp/server/index.ts')
+      },
       formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'js' : 'cjs'}`,
+      fileName: (format, entryName) => {
+        if (entryName === 'mcp/server/index') {
+          return `mcp/server/index.${format === 'es' ? 'js' : 'cjs'}`;
+        }
+        return `index.${format === 'es' ? 'js' : 'cjs'}`;
+      },
     },
     rollupOptions: {
       external: [
@@ -54,7 +71,7 @@ export default defineConfig({
     sourcemap: true,
     target: 'node16',
     outDir: 'dist',
-    emptyOutDir: true,
+    emptyOutDir: false,
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
