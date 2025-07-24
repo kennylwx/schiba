@@ -11,9 +11,9 @@ import { testConnection } from './cli/commands/test';
 import { copyConnectionString } from './cli/commands/copy';
 import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands/update';
 import { selectSchemas, listConnectionSchemas, showSchemasHelp } from './cli/commands/schemas';
-import { startMcpServer, showMcpUpHelp } from './mcp/commands/up';
-import { stopMcpServer, showMcpDownHelp } from './mcp/commands/down';
-import { showMcpServerStatus, showMcpStatusHelp } from './mcp/commands/status';
+import { startMcpServer } from './mcp/commands/up';
+import { stopMcpServer } from './mcp/commands/down';
+import { showMcpServerStatus } from './mcp/commands/status';
 import { logger, LogLevel } from './utils/logger';
 
 async function main(): Promise<void> {
