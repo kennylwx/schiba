@@ -261,6 +261,9 @@ async function main(): Promise<void> {
         });
 
         await server.start();
+
+        // Keep the process alive - MCP servers should not exit after starting
+        // The server will handle the connection lifecycle
       } catch (error) {
         process.stderr.write(`Failed to start Schiba MCP Server: ${error}\n`);
         process.exit(1);

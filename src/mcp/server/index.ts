@@ -40,6 +40,7 @@ export class SchibaMcpServer {
   private setupHandlers(): void {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      process.stderr.write('MCP: Received list_tools request\n');
       return {
         tools: MCP_TOOLS,
       };
@@ -209,17 +210,45 @@ export class SchibaMcpServer {
   }
 
   public async start(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
+    try {
+      const transport = new StdioServerTransport();
 
-    // Update server state
-    this.store.updateServerState({
-      status: 'running',
-      pid: process.pid,
-      startedAt: new Date().toISOString(),
-    });
+      // Add error handlers before connecting
+      process.on('uncaughtException', (error) => {
+        process.stderr.write(`Uncaught exception in MCP server: ${error}\n`);
+        process.stderr.write(`Stack: ${error.stack}\n`);
+        process.exit(1);
+      });
 
-    process.stderr.write('Schiba MCP Server started successfully\n');
+      process.on('unhandledRejection', (reason, _promise) => {
+        process.stderr.write(`Unhandled rejection in MCP server: ${reason}\n`);
+        process.exit(1);
+      });
+
+      // Handle parent process disconnect
+      process.on('disconnect', () => {
+        process.stderr.write('Parent process disconnected, shutting down...\n');
+        this.stop().then(() => process.exit(0));
+      });
+
+      // Update server state before connecting
+      this.store.updateServerState({
+        status: 'running',
+        pid: process.pid,
+        startedAt: new Date().toISOString(),
+      });
+
+      process.stderr.write('Schiba MCP Server started successfully\n');
+
+      // Connect and wait for the connection to close
+      await this.server.connect(transport);
+
+      // This line will only be reached when the connection closes
+      process.stderr.write('MCP Server connection closed\n');
+    } catch (error) {
+      process.stderr.write(`Failed to start MCP server: ${error}\n`);
+      throw error;
+    }
   }
 
   public async stop(): Promise<void> {
