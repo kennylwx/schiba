@@ -4,6 +4,7 @@ import ora from 'ora';
 import { McpStore } from '../server/store';
 import { logger } from '../../utils/logger';
 import { EMOJI_MAP } from '../../utils/constants';
+import { logDabi } from '@/utils/dabi-display';
 
 export interface McpUpOptions {
   port?: number;
@@ -146,6 +147,9 @@ export async function startMcpServer(options: McpUpOptions = {}): Promise<void> 
     spinner.succeed('MCP Server started successfully');
 
     logger.info(`\n${EMOJI_MAP.success} Schiba MCP Server started successfully!`);
+
+    logDabi();
+
     logger.info(`   Process ID: ${serverProcess.pid}`);
     logger.info(`   Transport: stdio (MCP standard)`);
     if (options.detach !== false) {
