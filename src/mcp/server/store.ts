@@ -146,11 +146,11 @@ export class McpStore {
         connection.tag,
         connection.url,
         connection.sslMode,
-        connection.schemas,
-        connection.description,
+        connection.schemas ?? null,
+        connection.description ?? null,
         connection.createdAt,
-        connection.updatedAt,
-        connection.lastUsed
+        connection.updatedAt ?? null,
+        connection.lastUsed ?? null
       );
   }
 
@@ -203,11 +203,11 @@ export class McpStore {
       .run(
         log.id,
         log.operation,
-        log.connectionTag,
+        log.connectionTag ?? null,
         log.timestamp,
-        log.duration,
+        log.duration ?? null,
         log.success,
-        log.error
+        log.error ?? null
       );
   }
 
