@@ -25,7 +25,8 @@ export class PostgresConnection extends BaseConnection {
       await this.client.connect();
       this.connected = true;
     } catch (error) {
-      throw this.formatError(error);
+      const formattedError = this.formatError(error);
+      throw formattedError;
     }
   }
 
@@ -51,6 +52,7 @@ export class PostgresConnection extends BaseConnection {
 
   private formatError(error: unknown): Error {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = error instanceof Error && 'code' in error ? error.code : null;
 
     // FIX: Add a specific check for the RDS Proxy TLS error.
     if (message.includes('This RDS Proxy requires TLS connections')) {
@@ -77,17 +79,84 @@ export class PostgresConnection extends BaseConnection {
       );
     }
 
-    if (message.includes('ECONNREFUSED')) {
+    if (message.includes('ECONNREFUSED') || errorCode === 'ECONNREFUSED') {
+      try {
+        const url = new URL(this.connectionConfig.url);
+        return new Error(
+          `Connection Refused: Could not connect to ${chalk.cyan(`${url.hostname}:${url.port}`)}.\n\n` +
+            chalk.yellow('Please check the following:') +
+            '\n' +
+            `  1. The database server is running and accessible.\n` +
+            `  2. The host and port in your connection details are correct.\n` +
+            `  3. Firewalls or network security groups are not blocking the connection.\n\n` +
+            `You can update connection details using ${chalk.cyan('schiba update ...')}`
+        );
+      } catch {
+        return new Error(
+          `Connection Refused: Could not connect to the database server.\n\n` +
+            chalk.yellow('Please check the following:') +
+            '\n' +
+            `  1. The database server is running and accessible.\n` +
+            `  2. The host and port in your connection details are correct.\n` +
+            `  3. Firewalls or network security groups are not blocking the connection.\n\n` +
+            `You can update connection details using ${chalk.cyan('schiba update ...')}`
+        );
+      }
+    }
+
+    if (message.includes('EHOSTUNREACH') || errorCode === 'EHOSTUNREACH') {
       const url = new URL(this.connectionConfig.url);
       return new Error(
-        `Connection Refused: Could not connect to ${chalk.cyan(`${url.hostname}:${url.port}`)}.\n\n` +
+        `Host Unreachable: Could not reach ${chalk.cyan(`${url.hostname}:${url.port}`)}.\n\n` +
           chalk.yellow('Please check the following:') +
           '\n' +
-          `  1. The database server is running and accessible.\n` +
-          `  2. The host and port in your connection details are correct.\n` +
-          `  3. Firewalls or network security groups are not blocking the connection.\n\n` +
+          `  1. The hostname is correct and reachable.\n` +
+          `  2. Your network connection is working.\n` +
+          `  3. VPN or proxy settings if required.\n\n` +
           `You can update connection details using ${chalk.cyan('schiba update ...')}`
       );
+    }
+
+    if (message.includes('ETIMEDOUT') || message.includes('timeout') || errorCode === 'ETIMEDOUT') {
+      const url = new URL(this.connectionConfig.url);
+      return new Error(
+        `Connection Timeout: Could not connect to ${chalk.cyan(`${url.hostname}:${url.port}`)} within the timeout period.\n\n` +
+          chalk.yellow('Please check the following:') +
+          '\n' +
+          `  1. The database server is responding.\n` +
+          `  2. Network latency or firewall rules may be causing delays.\n` +
+          `  3. Try increasing the timeout with --timeout option.\n\n` +
+          `You can update connection details using ${chalk.cyan('schiba update ...')}`
+      );
+    }
+
+    if (
+      message.includes('ENOTFOUND') ||
+      message.includes('getaddrinfo') ||
+      errorCode === 'ENOTFOUND'
+    ) {
+      try {
+        const url = new URL(this.connectionConfig.url);
+        return new Error(
+          `Host Not Found: Could not resolve hostname ${chalk.cyan(`${url.hostname}`)}.\n\n` +
+            chalk.yellow('Please check the following:') +
+            '\n' +
+            `  1. The hostname is spelled correctly.\n` +
+            `  2. DNS resolution is working properly.\n` +
+            `  3. The host exists and is reachable from your network.\n\n` +
+            `You can update the hostname using ${chalk.cyan(`schiba update ${this.connectionConfig.tag} host <correct-hostname>`)}`
+        );
+      } catch {
+        return new Error(
+          `Host Not Found: DNS resolution failed.\n\n` +
+            chalk.yellow('Please check the following:') +
+            '\n' +
+            `  1. The hostname is spelled correctly.\n` +
+            `  2. DNS resolution is working properly.\n` +
+            `  3. The host exists and is reachable from your network.\n\n` +
+            `You can update connection details using ${chalk.cyan('schiba update ...')}`
+        );
+      }
     }
 
     if (message.includes('password authentication failed')) {
