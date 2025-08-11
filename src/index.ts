@@ -13,6 +13,20 @@ import { showUpdateHelp, updateConnection, UpdateProperty } from './cli/commands
 import { selectSchemas, listConnectionSchemas, showSchemasHelp } from './cli/commands/schemas';
 import { logger, LogLevel } from './utils/logger';
 
+type CopyProperty = 'host' | 'port' | 'schemas' | 'username' | 'password' | 'database';
+const validProperties: CopyProperty[] = [
+  'host',
+  'port',
+  'schemas',
+  'username',
+  'password',
+  'database',
+];
+
+function isCopyProperty(value: string): value is CopyProperty {
+  return validProperties.includes(value as CopyProperty);
+}
+
 async function main(): Promise<void> {
   program
     .name('schiba')
@@ -146,15 +160,24 @@ async function main(): Promise<void> {
 
   // Copy command
   program
-    .command('copy <tag>')
-    .description('Copy connection string to clipboard')
-    .action(async (tag: string) => {
-      try {
-        await copyConnectionString(tag);
-      } catch (error) {
-        process.exit(1);
+    .command('copy [tag] [property]')
+    .description('Copy connection string or a specific property to clipboard')
+    .action(
+      async (
+        tag?: string,
+        property?: 'host' | 'port' | 'schemas' | 'username' | 'password' | 'database'
+      ) => {
+        try {
+          if (tag && !property && isCopyProperty(tag)) {
+            property = tag;
+            tag = undefined;
+          }
+          await copyConnectionString(tag, property);
+        } catch (error) {
+          process.exit(1);
+        }
       }
-    });
+    );
 
   // Update command
   program
