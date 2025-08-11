@@ -36,32 +36,35 @@ function parseConnectionString(
       }
     }
 
+    // Decode password to handle URL encoding
+    const password = urlObj.password ? decodeURIComponent(urlObj.password) : '';
+
     switch (dbType.toUpperCase()) {
       case 'POSTGRES':
         return {
-          username: urlObj.username,
-          password: urlObj.password,
-          host: urlObj.hostname,
+          username: urlObj.username || '-',
+          password: password,
+          host: urlObj.hostname || '-',
           port: urlObj.port || '5432',
-          database: urlObj.pathname.slice(1),
+          database: urlObj.pathname.slice(1) || '-',
           schemas: schemas,
         };
       case 'MONGODB':
         return {
-          username: urlObj.username,
-          password: urlObj.password,
-          host: urlObj.hostname,
+          username: urlObj.username || '-',
+          password: password,
+          host: urlObj.hostname || '-',
           port: urlObj.port || '27017',
           database: urlObj.pathname.slice(1) || 'admin',
           schemas: '-', // MongoDB doesn't have schemas like PostgreSQL
         };
       default:
         return {
-          username: urlObj.username,
-          password: urlObj.password,
-          host: urlObj.hostname,
-          port: urlObj.port,
-          database: urlObj.pathname.slice(1),
+          username: urlObj.username || '-',
+          password: password,
+          host: urlObj.hostname || '-',
+          port: urlObj.port || '-',
+          database: urlObj.pathname.slice(1) || '-',
           schemas: schemas,
         };
     }
@@ -75,18 +78,6 @@ function parseConnectionString(
       schemas: '-',
     };
   }
-}
-
-function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
-  return str.replace(/\u001b\[[0-9;]*m/g, '');
-}
-
-function truncateWithEllipsis(text: string, maxLength: number): string {
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return text.slice(0, maxLength - 3) + '...';
 }
 
 export function showConfigLocation(): void {
@@ -105,97 +96,81 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
 
     showConfigLocation();
 
-    const MAX_HOST_LENGTH = 18; // Define maximum host column width
-
     const connectionDetails = connections.map(({ tag, connection, isDefault }) => {
       const dbType = configManager.detectDatabaseType(connection) || 'Unknown';
       const details = parseConnectionString(connection.url, dbType, connection.schemas);
 
       return {
-        tag: isDefault ? `${tag} ${chalk.green('*')}` : tag,
+        tag,
         type: dbType,
         username: details.username || '-',
-        password: details.password ? (options.showPasswords ? details.password : '***') : '-',
+        password: details.password || '',
         host: details.host || '-',
         port: details.port || '-',
         database: details.database || '-',
         schemas: details.schemas || '-',
-        sslMode: connection.sslMode,
+        sslMode: connection.sslMode || 'prefer',
         isDefault,
       };
     });
 
-    // Calculate column widths (conditionally include password)
-    const columns = {
-      tag: Math.max(3, ...connectionDetails.map((c) => stripAnsi(c.tag).length)),
-      type: Math.max(4, ...connectionDetails.map((c) => c.type.length)),
-      username: Math.max(8, ...connectionDetails.map((c) => c.username.length)),
-      password: options.showPasswords
-        ? Math.max(8, ...connectionDetails.map((c) => c.password.length))
-        : 0,
-      host: Math.min(MAX_HOST_LENGTH, Math.max(4, ...connectionDetails.map((c) => c.host.length))),
-      port: Math.max(4, ...connectionDetails.map((c) => c.port.length)),
-      database: Math.max(8, ...connectionDetails.map((c) => c.database.length)),
-      schemas: Math.max(7, ...connectionDetails.map((c) => c.schemas.length)),
-      sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)),
-    };
+    // Calculate label width for alignment
+    const labelWidth = options.showPasswords ? 9 : 9; // "Password:" is longest
 
-    // Build header array conditionally
-    const headerItems = [
-      'Tag'.padEnd(columns.tag),
-      'Type'.padEnd(columns.type),
-      'Username'.padEnd(columns.username),
-    ];
-
-    if (options.showPasswords) {
-      headerItems.push('Password'.padEnd(columns.password));
-    }
-
-    headerItems.push(
-      'Host'.padEnd(columns.host),
-      'Port'.padEnd(columns.port),
-      'Database'.padEnd(columns.database),
-      'Schemas'.padEnd(columns.schemas),
-      'SSL Mode'.padEnd(columns.sslMode)
-    );
-
-    const header = headerItems.join(' | ');
-    console.log(chalk.bold(header));
-    console.log(chalk.dim('-'.repeat(header.length)));
-
-    // Print rows
-    connectionDetails.forEach((conn) => {
-      const tagPadding = columns.tag + (conn.tag.length - stripAnsi(conn.tag).length);
-      const truncatedHost = truncateWithEllipsis(conn.host, MAX_HOST_LENGTH);
-
-      const rowItems = [
-        conn.tag.padEnd(tagPadding),
-        conn.type.padEnd(columns.type),
-        conn.username.padEnd(columns.username),
-      ];
-
-      if (options.showPasswords) {
-        rowItems.push(conn.password.padEnd(columns.password));
+    // Print each connection in card format
+    connectionDetails.forEach((conn, index) => {
+      // Build the tag display with default indicator
+      let tagDisplay = conn.tag;
+      if (conn.isDefault) {
+        tagDisplay = chalk.bold.cyan(`${conn.tag} (default)`);
       }
 
-      rowItems.push(
-        truncatedHost.padEnd(columns.host),
-        conn.port.padEnd(columns.port),
-        conn.database.padEnd(columns.database),
-        conn.schemas.padEnd(columns.schemas),
-        conn.sslMode.padEnd(columns.sslMode)
-      );
+      // Connection header without type in brackets
+      console.log(tagDisplay);
 
-      const row = rowItems.join(' | ');
-      console.log(row);
+      // Connection details with aligned labels
+      const indent = '    ';
+      console.log(`${indent}${'Type:'.padEnd(labelWidth)} ${conn.type}`);
+      console.log(`${indent}${'Host:'.padEnd(labelWidth)} ${conn.host}:${conn.port}`);
+      console.log(`${indent}${'Database:'.padEnd(labelWidth)} ${conn.database}`);
+      console.log(`${indent}${'User:'.padEnd(labelWidth)} ${conn.username}`);
+
+      // Password display logic
+      if (conn.password) {
+        if (options.showPasswords) {
+          console.log(`${indent}${'Password:'.padEnd(labelWidth)} ${conn.password}`);
+        } else {
+          console.log(`${indent}${'Password:'.padEnd(labelWidth)} ***`);
+        }
+      } else if (options.showPasswords) {
+        console.log(`${indent}${'Password:'.padEnd(labelWidth)} (no password)`);
+      }
+
+      // Schemas (only for non-MongoDB)
+      if (conn.type !== 'MONGODB' && conn.schemas !== '-') {
+        console.log(`${indent}${'Schemas:'.padEnd(labelWidth)} ${conn.schemas}`);
+      }
+
+      console.log(`${indent}${'SSL:'.padEnd(labelWidth)} ${conn.sslMode}`);
+
+      // Add spacing between connections except for the last one
+      if (index < connectionDetails.length - 1) {
+        console.log();
+      }
     });
 
-    if (!options.showPasswords) {
-      console.log(
-        chalk.dim('\nTip 1: Use --show-passwords to reveal passwords and show Password column')
-      );
-    }
+    // Footer with summary and tips
+    console.log('\n' + chalk.dim('─'.repeat(50)));
+    const defaultCount = connectionDetails.filter((c) => c.isDefault).length;
+    const summaryText =
+      defaultCount > 0
+        ? `${connections.length} connections configured`
+        : `${connections.length} connections configured`;
+    console.log(summaryText);
 
+    if (!options.showPasswords) {
+      console.log(chalk.dim('Tip 1: Use --show-passwords to reveal passwords'));
+    }
     console.log(
       chalk.dim('Tip 2: Use "schiba schemas <tag>" to configure schemas for a connection')
     );

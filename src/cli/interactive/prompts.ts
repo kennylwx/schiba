@@ -201,7 +201,7 @@ export class InteractivePrompts {
     if (existingTags.includes(details.tag.toLowerCase())) {
       console.log(
         chalk.yellow(
-          `\nℹ️  Note: Tag '${details.tag}' is already taken. A unique name will be auto-generated.`
+          `\nNote: Tag '${details.tag}' is already taken. A unique name will be auto-generated.`
         )
       );
     }
