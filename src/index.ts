@@ -238,7 +238,9 @@ Multi-Schema Support:
   - View selected schemas in 'schiba list' output`
   );
 
-  await program.parseAsync();
+  // Filter out the '--' separator that might be passed from npm/pnpm scripts
+  const args = process.argv.filter((arg) => arg !== '--');
+  await program.parseAsync(args);
 }
 
 process.on('uncaughtException', (error: Error) => {
