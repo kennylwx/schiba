@@ -283,6 +283,7 @@ export class PostgresAnalyzer {
     return {
       totalSize: JSON.stringify(schema).length,
       objectCount: totalTables,
+      schemas: this.connectionConfig.schemas || ['public'],
       details: {
         tables: totalTables,
         columns: totalColumns,

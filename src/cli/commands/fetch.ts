@@ -135,9 +135,18 @@ function printSummary(
         chalk.dim(`${(stats.totalSize / 1024).toFixed(2)}KB`)
     );
 
-    // Line 2: Breakdown
+    // Line 2: Schema info
     console.log(
       chalk.dim('2.  ') +
+        chalk.dim('Schemas: ') +
+        chalk.dim(
+          `${stats.schemas ? stats.schemas.length : 1} (${stats.schemas ? stats.schemas.join(', ') : 'public'})`
+        )
+    );
+
+    // Line 3: Breakdown
+    console.log(
+      chalk.dim('3.  ') +
         chalk.dim('Database: ') +
         chalk.dim(`Tables: `) +
         chalk.dim(`${stats.details.tables || 0}`) +
@@ -152,9 +161,9 @@ function printSummary(
         chalk.dim(`${stats.details.enums || 0}`)
     );
 
-    // Line 3: Token usage
+    // Line 4: Token usage
     console.log(
-      chalk.dim('3.  ') +
+      chalk.dim('4.  ') +
         chalk.dim('Token: ') +
         chalk.dim('Claude: ') +
         chalk.dim(`${tokenEstimates.claude.toLocaleString()} tokens`) +

@@ -26,11 +26,15 @@ export async function copyConnectionString(
           propertyName = 'Port';
           break;
         case 'schemas': {
-          const schemas = new URLSearchParams(url.search).get('schema');
-          if (schemas) {
-            valueToCopy = schemas;
-            propertyName = 'Schemas';
+          if (connectionConfig.schemas && connectionConfig.schemas.length > 0) {
+            valueToCopy = connectionConfig.schemas.join(',');
+          } else {
+            const urlSchema = new URLSearchParams(url.search).get('schema');
+            if (urlSchema) {
+              valueToCopy = urlSchema;
+            }
           }
+          propertyName = 'Schemas';
           break;
         }
         case 'username':
