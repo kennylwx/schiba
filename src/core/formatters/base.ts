@@ -46,6 +46,7 @@ Schema Metrics:
 ${EMOJI_MAP.stats} Statistics:
    - Database Type: ${dbType}
    - Total Size: ${(stats.totalSize / 1024).toFixed(2)} KB
+   - Schemas: ${stats.schemas ? stats.schemas.length : 1} (${stats.schemas ? stats.schemas.join(', ') : 'public'})
    ${stats.details.tables ? `- Tables: ${stats.details.tables}` : ''}
    ${stats.details.columns ? `- Columns: ${stats.details.columns}` : ''}
    ${stats.details.indexes ? `- Indexes: ${stats.details.indexes}` : ''}

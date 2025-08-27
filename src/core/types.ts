@@ -1,6 +1,7 @@
 export interface SchemaStats {
   totalSize: number;
   objectCount: number;
+  schemas?: string[];
   details: {
     tables?: number;
     columns?: number;

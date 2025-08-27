@@ -32,7 +32,10 @@ function parseConnectionString(
     } else {
       const urlSchema = searchParams.get('schema');
       if (urlSchema) {
-        schemas = urlSchema;
+        schemas = urlSchema
+          .split(',')
+          .map((s) => s.trim())
+          .join(', ');
       }
     }
 

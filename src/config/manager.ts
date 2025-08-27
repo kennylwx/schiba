@@ -222,9 +222,11 @@ export class ConfigManager {
 
       case 'schema': {
         const searchParams = new URLSearchParams(url.search);
-        searchParams.set('schema', value);
+        const schemaValues = value.split(',').map((s) => s.trim());
+        searchParams.set('schema', schemaValues.join(','));
         url.search = searchParams.toString();
         connection.url = url.toString();
+        connection.schemas = schemaValues;
         break;
       }
 
@@ -293,10 +295,25 @@ export class ConfigManager {
 
     const parsedUrl = parseEnvVariables(connection.url);
 
+    // Parse schemas from URL if not already present in connection config
+    let schemas = connection.schemas;
+    if (!schemas) {
+      try {
+        const url = new URL(parsedUrl);
+        const schemaParam = url.searchParams.get('schema');
+        if (schemaParam) {
+          schemas = schemaParam.split(',').map((s) => s.trim());
+        }
+      } catch (error) {
+        // Ignore URL parsing errors, will fall back to ['public'] in analyzer
+      }
+    }
+
     return {
       ...connection,
       url: parsedUrl,
       tag: targetTag,
+      schemas: schemas,
     };
   }
 
