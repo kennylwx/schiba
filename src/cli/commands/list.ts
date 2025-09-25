@@ -4,7 +4,7 @@ import { logger } from '../../utils/logger';
 import { configPaths } from '@/config/paths';
 
 interface ListOptions {
-  showPasswords?: boolean;
+  details?: boolean;
 }
 
 interface ParsedConnectionDetails {
@@ -118,7 +118,7 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
         tag: isDefault ? `${tag} ${chalk.green('*')}` : tag,
         type: dbType,
         username: details.username || '-',
-        password: details.password ? (options.showPasswords ? details.password : '***') : '-',
+        password: details.password ? (options.details ? details.password : '***') : '-',
         host: details.host || '-',
         port: details.port || '-',
         database: details.database || '-',
@@ -128,12 +128,12 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       };
     });
 
-    // Calculate column widths (conditionally include password)
+    // Calculate column widths (conditionally include additional columns for details)
     const columns = {
       tag: Math.max(3, ...connectionDetails.map((c) => stripAnsi(c.tag).length)),
       type: Math.max(4, ...connectionDetails.map((c) => c.type.length)),
       username: Math.max(8, ...connectionDetails.map((c) => c.username.length)),
-      password: options.showPasswords
+      password: options.details
         ? Math.max(8, ...connectionDetails.map((c) => c.password.length))
         : 0,
       host: Math.min(MAX_HOST_LENGTH, Math.max(4, ...connectionDetails.map((c) => c.host.length))),
@@ -143,24 +143,24 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       sslMode: Math.max(8, ...connectionDetails.map((c) => c.sslMode.length)),
     };
 
-    // Build header array conditionally
-    const headerItems = [
-      'Tag'.padEnd(columns.tag),
-      'Type'.padEnd(columns.type),
-      'Username'.padEnd(columns.username),
-    ];
+    // Build header array - show minimal columns by default, all columns with --details
+    const headerItems = ['Tag'.padEnd(columns.tag)];
 
-    if (options.showPasswords) {
-      headerItems.push('Password'.padEnd(columns.password));
+    if (options.details) {
+      headerItems.push(
+        'Type'.padEnd(columns.type),
+        'Username'.padEnd(columns.username),
+        'Password'.padEnd(columns.password),
+        'Host'.padEnd(columns.host),
+        'Port'.padEnd(columns.port)
+      );
     }
 
-    headerItems.push(
-      'Host'.padEnd(columns.host),
-      'Port'.padEnd(columns.port),
-      'Database'.padEnd(columns.database),
-      'Schemas'.padEnd(columns.schemas),
-      'SSL Mode'.padEnd(columns.sslMode)
-    );
+    headerItems.push('Database'.padEnd(columns.database), 'Schemas'.padEnd(columns.schemas));
+
+    if (options.details) {
+      headerItems.push('SSL Mode'.padEnd(columns.sslMode));
+    }
 
     const header = headerItems.join(' | ');
     console.log(chalk.bold(header));
@@ -171,31 +171,31 @@ export async function listConnections(options: ListOptions = {}): Promise<void> 
       const tagPadding = columns.tag + (conn.tag.length - stripAnsi(conn.tag).length);
       const truncatedHost = truncateWithEllipsis(conn.host, MAX_HOST_LENGTH);
 
-      const rowItems = [
-        conn.tag.padEnd(tagPadding),
-        conn.type.padEnd(columns.type),
-        conn.username.padEnd(columns.username),
-      ];
+      const rowItems = [conn.tag.padEnd(tagPadding)];
 
-      if (options.showPasswords) {
-        rowItems.push(conn.password.padEnd(columns.password));
+      if (options.details) {
+        rowItems.push(
+          conn.type.padEnd(columns.type),
+          conn.username.padEnd(columns.username),
+          conn.password.padEnd(columns.password),
+          truncatedHost.padEnd(columns.host),
+          conn.port.padEnd(columns.port)
+        );
       }
 
-      rowItems.push(
-        truncatedHost.padEnd(columns.host),
-        conn.port.padEnd(columns.port),
-        conn.database.padEnd(columns.database),
-        conn.schemas.padEnd(columns.schemas),
-        conn.sslMode.padEnd(columns.sslMode)
-      );
+      rowItems.push(conn.database.padEnd(columns.database), conn.schemas.padEnd(columns.schemas));
+
+      if (options.details) {
+        rowItems.push(conn.sslMode.padEnd(columns.sslMode));
+      }
 
       const row = rowItems.join(' | ');
       console.log(row);
     });
 
-    if (!options.showPasswords) {
+    if (!options.details) {
       console.log(
-        chalk.dim('\nTip 1: Use --show-passwords to reveal passwords and show Password column')
+        chalk.dim('\nTip 1: Use --details to show all connection details including passwords')
       );
     }
 

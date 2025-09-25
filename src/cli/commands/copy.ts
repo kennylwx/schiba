@@ -3,6 +3,28 @@ import chalk from 'chalk';
 import { configManager } from '../../config/manager';
 import { logger } from '../../utils/logger';
 import { EMOJI_MAP } from '../../utils/constants';
+import type { ConnectionConfig } from '../../config/types';
+
+function buildConnectionStringWithSchemas(connectionConfig: ConnectionConfig): string {
+  const url = new URL(connectionConfig.url);
+
+  // If schemas are configured, add them to the URL
+  if (connectionConfig.schemas && connectionConfig.schemas.length > 0) {
+    const searchParams = new URLSearchParams(url.search);
+
+    // For PostgreSQL, use 'schema' parameter (single schema) or handle multiple schemas
+    if (connectionConfig.schemas.length === 1) {
+      searchParams.set('schema', connectionConfig.schemas[0]);
+    } else {
+      // For multiple schemas, join them with comma
+      searchParams.set('schema', connectionConfig.schemas.join(','));
+    }
+
+    url.search = searchParams.toString();
+  }
+
+  return url.toString();
+}
 
 export async function copyConnectionString(
   tag?: string,
@@ -68,7 +90,8 @@ export async function copyConnectionString(
         return;
       }
     } else {
-      valueToCopy = connectionConfig.url;
+      // Build the complete connection string including schemas if configured
+      valueToCopy = buildConnectionStringWithSchemas(connectionConfig);
     }
 
     await clipboardy.write(valueToCopy);

@@ -141,12 +141,12 @@ schiba list [options]
 
 **Options**
 
-- `--show-passwords`: Displays passwords in plain text instead of `***`.
+- `--details`: Shows all connection details including passwords, type, username, host, and port.
 
 **Example**
 
 ```bash
-schiba list --show-passwords
+schiba list --details
 ```
 
 ---

@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   program
     .command('list')
     .description('List all connections')
-    .option('--show-passwords', 'Show passwords in plain text')
+    .option('--details', 'Show all connection details including passwords')
     .action(async (options) => {
       try {
         await listConnections(options);
